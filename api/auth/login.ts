@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, loginUser } from '../../lib/db';
+import { initAuthDB, loginUser } from '../../lib/db';
 import { hashPassword } from '../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await initDB();
+    await initAuthDB();
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'Correo y contraseña son requeridos.' });

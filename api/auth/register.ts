@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, registerUser } from '../../lib/db';
+import { initAuthDB, registerUser } from '../../lib/db';
 import { hashPassword } from '../../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
     }
 
-    await initDB();
+    await initAuthDB();
     const hashedPassword = hashPassword(password);
     const result = await registerUser(name, email, hashedPassword);
     if ('error' in result) {

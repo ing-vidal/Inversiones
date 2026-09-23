@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, updateUserAvatar } from '../../lib/db';
+import { initAuthDB, updateUserAvatar } from '../../lib/db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await initDB();
+    await initAuthDB();
     const { userId, avatar } = req.body || {};
     if (!userId || !avatar) {
       return res.status(400).json({ error: 'userId y avatar son requeridos.' });
