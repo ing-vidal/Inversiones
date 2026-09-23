@@ -357,25 +357,33 @@ export async function deleteAccount(id: string): Promise<boolean> {
 // CRUD: Yield History
 // ---------------------------------------------------------------------------
 export async function getYieldHistory(): Promise<DailyYieldRecord[]> {
-  const sql = getSQL();
-  const rows = await sql`SELECT * FROM yield_history ORDER BY "createdAt" DESC LIMIT 100`;
-  return rows.map(mapHistory);
+  try {
+    const sql = getSQL();
+    const rows = await sql`SELECT * FROM yield_history ORDER BY "createdAt" DESC LIMIT 100`;
+    return rows.map(mapHistory);
+  } catch (error: any) {
+    throw new Error(`getYieldHistory failed: ${error?.message || String(error)}`);
+  }
 }
 
 export async function createYieldRecord(record: DailyYieldRecord): Promise<DailyYieldRecord> {
-  const sql = getSQL();
-  await sql`
-    INSERT INTO yield_history (
-      id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
-      date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
-    ) VALUES (
-      ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
-      ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
-      ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
-      ${record.balanceAtTime}, ${Date.now()}
-    )
-  `;
-  return record;
+  try {
+    const sql = getSQL();
+    await sql`
+      INSERT INTO yield_history (
+        id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
+        date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
+      ) VALUES (
+        ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
+        ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
+        ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
+        ${record.balanceAtTime}, ${Date.now()}
+      )
+    `;
+    return record;
+  } catch (error: any) {
+    throw new Error(`createYieldRecord failed: ${error?.message || String(error)}`);
+  }
 }
 
 // ---------------------------------------------------------------------------

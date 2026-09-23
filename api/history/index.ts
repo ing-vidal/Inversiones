@@ -25,7 +25,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
-    console.error('History API error:', error);
-    return res.status(503).json({ error: error?.message || 'Database unavailable' });
+    console.error('History API error:', {
+      message: error?.message,
+      stack: error?.stack,
+      body: req.body,
+    });
+
+    return res.status(500).json({
+      error: 'Database unavailable',
+      details: error?.message || 'Unknown error',
+    });
   }
 }
