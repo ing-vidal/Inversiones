@@ -488,3 +488,4 @@ export async function updateUserAvatar(userId: string, avatarBase64: string): Pr
   const r = rows[0];
   return { id: r.id, name: r.name, email: r.email, avatar: avatarBase64, created_at: r.created_at };
 }
+
