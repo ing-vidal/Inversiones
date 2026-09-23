@@ -12,7 +12,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await initDB();
     const { name, email, password } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos.' });
@@ -21,6 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
     }
 
+    await initDB();
     const hashedPassword = hashPassword(password);
     const result = await registerUser(name, email, hashedPassword);
     if ('error' in result) {

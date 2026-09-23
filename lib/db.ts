@@ -8,8 +8,10 @@ import { INITIAL_ACCOUNTS, INITIAL_INSTITUTIONS, INITIAL_YIELD_HISTORY } from '.
 import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator';
 
 function getSQL() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL environment variable is not set');
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+  if (!url) {
+    throw new Error('Database connection is not configured. Set DATABASE_URL in Vercel.');
+  }
   return neon(url);
 }
 
