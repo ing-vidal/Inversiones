@@ -29,6 +29,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(201).json({ user: result.user });
   } catch (error: any) {
     console.error('Register error:', error);
+    if (error instanceof Error && error.message.includes('Database connection is not configured')) {
+      return res.status(503).json({
+        error: 'La base de datos no está configurada en Vercel. Añade DATABASE_URL y vuelve a desplegar.',
+      });
+    }
     return res.status(500).json({ error: 'Error al registrar usuario.' });
   }
 }
