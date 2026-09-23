@@ -1,0 +1,80 @@
+CREATE TABLE IF NOT EXISTS institutions (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  "shortName" TEXT NOT NULL,
+  rate REAL NOT NULL,
+  "defaultBase" INTEGER NOT NULL,
+  "defaultFreq" TEXT NOT NULL,
+  "hasDualTier" INTEGER NOT NULL DEFAULT 0,
+  "dualThreshold" REAL,
+  "dualRate2" REAL,
+  color TEXT NOT NULL,
+  "badgeBg" TEXT NOT NULL,
+  "badgeText" TEXT NOT NULL,
+  category TEXT NOT NULL,
+  "gatNominal" REAL NOT NULL,
+  "gatReal" REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id TEXT PRIMARY KEY,
+  "institutionId" TEXT NOT NULL,
+  "institutionName" TEXT NOT NULL,
+  "accountNickname" TEXT NOT NULL,
+  balance REAL NOT NULL,
+  "nominalRate" REAL NOT NULL,
+  "rateType" TEXT NOT NULL,
+  "rateExpiryDate" TEXT,
+  "baseDivisor" INTEGER NOT NULL,
+  "paymentFrequency" TEXT NOT NULL,
+  "isCompound" INTEGER NOT NULL DEFAULT 1,
+  "deductISR" INTEGER NOT NULL DEFAULT 1,
+  "isDualTier" INTEGER NOT NULL DEFAULT 0,
+  "dualThreshold" REAL,
+  "dualRate2" REAL,
+  color TEXT NOT NULL,
+  "badgeBg" TEXT NOT NULL,
+  "badgeText" TEXT NOT NULL,
+  "shortCode" TEXT NOT NULL,
+  "createdAt" TEXT NOT NULL,
+  "daysRemaining" INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS yield_history (
+  id TEXT PRIMARY KEY,
+  "accountId" TEXT NOT NULL,
+  "bankName" TEXT NOT NULL,
+  "shortCode" TEXT NOT NULL,
+  "badgeBg" TEXT NOT NULL,
+  "badgeText" TEXT NOT NULL,
+  date TEXT NOT NULL,
+  time TEXT NOT NULL,
+  "grossYield" REAL NOT NULL,
+  "isrWithheld" REAL NOT NULL,
+  "netYield" REAL NOT NULL,
+  "balanceAtTime" REAL NOT NULL,
+  "createdAt" BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_settings (
+  id TEXT PRIMARY KEY,
+  "satIsrRate" REAL NOT NULL,
+  "applySofipoExemption" INTEGER NOT NULL DEFAULT 1,
+  "umaValueAnnual" REAL NOT NULL,
+  "expectedInflation" REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  avatar TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS accounts_institution_id_idx
+  ON accounts ("institutionId");
+
+CREATE INDEX IF NOT EXISTS yield_history_account_id_idx
+  ON yield_history ("accountId");

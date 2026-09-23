@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "vercel-dev": "vercel dev",
+    "db:init": "tsx scripts/init-db.ts",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
