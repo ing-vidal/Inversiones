@@ -115,6 +115,27 @@ export interface AuthUser {
   created_at: string;
 }
 
+async function readApiResponse<T>(res: Response, fallbackError: string): Promise<T> {
+  const body = await res.text();
+  let data: T & { error?: string } | null = null;
+
+  try {
+    data = body ? JSON.parse(body) : null;
+  } catch {
+    if (!res.ok) {
+      throw new Error(fallbackError);
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || fallbackError);
+  }
+  if (!data) {
+    throw new Error(fallbackError);
+  }
+  return data;
+}
+
 export async function apiRegister(
   name: string,
   email: string,
@@ -125,9 +146,7 @@ export async function apiRegister(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Error al registrarse');
-  return data;
+  return readApiResponse<{ user: AuthUser }>(res, 'Error al registrarse');
 }
 
 export async function apiLogin(
@@ -139,9 +158,7 @@ export async function apiLogin(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Correo o contraseña incorrectos');
-  return data;
+  return readApiResponse<{ user: AuthUser }>(res, 'Correo o contraseña incorrectos');
 }
 
 export async function apiUpdateAvatar(
