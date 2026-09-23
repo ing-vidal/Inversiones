@@ -13,6 +13,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { name, email, password } = req.body || {};
+    console.log('Register request payload:', {
+      hasName: Boolean(name),
+      hasEmail: Boolean(email),
+      hasPassword: Boolean(password),
+      email: typeof email === 'string' ? email : undefined,
+      dbConfigured: Boolean(process.env.DATABASE_URL),
+    });
+
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos.' });
     }
@@ -28,12 +36,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(201).json({ user: result.user });
   } catch (error: any) {
-    console.error('Register error:', error);
+    console.error('Register error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      body: req.body,
+      dbConfigured: Boolean(process.env.DATABASE_URL),
+    });
+
     if (error instanceof Error && error.message.includes('Database connection is not configured')) {
       return res.status(503).json({
         error: 'La base de datos no está configurada en Vercel. Añade DATABASE_URL y vuelve a desplegar.',
       });
     }
-    return res.status(500).json({ error: 'Error al registrar usuario.' });
+    return res.status(500).json({
+      error: 'Error al registrar usuario.',
+      details: error?.message || 'Unknown error',
+    });
   }
 }

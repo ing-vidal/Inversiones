@@ -10,6 +10,11 @@ import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../
 function getSQL() {
   const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
   if (!url) {
+    console.error('DB config check:', {
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+      hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+      hasPostgresUrlNonPooling: Boolean(process.env.POSTGRES_URL_NON_POOLING),
+    });
     throw new Error('Database connection is not configured. Set DATABASE_URL in Vercel.');
   }
   return neon(url);
