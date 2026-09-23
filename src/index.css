@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-space: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-hanken: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-hanken);
+    background-color: #f8f9ff;
+    color: #0b1c30;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.font-metric,
+.font-space {
+  font-family: var(--font-space);
+  font-feature-settings: "tnum" 1;
+}
+
+.font-hanken {
+  font-family: var(--font-hanken);
+}
+
+/* Hide scrollbar for clean horizontal chips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom smooth transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+

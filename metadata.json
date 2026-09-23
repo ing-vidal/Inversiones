@@ -1,0 +1,6 @@
+{
+  "name": "Rendimax - Cuentas y Rendimientos Bancarios",
+  "description": "Calculadora inteligente y administrador de rendimientos diarios exactos, retención ISR SAT e interés compuesto para cuentas bancarias y SOFIPOs en México.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
