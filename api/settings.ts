@@ -6,27 +6,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await initDB();
+  try {
+    await initDB();
 
-  if (req.method === 'GET') {
-    try {
+    if (req.method === 'GET') {
       const settings = await getUserSettings();
       return res.status(200).json(settings);
-    } catch (error: any) {
-      console.error('Failed to fetch settings:', error);
-      return res.status(500).json({ error: 'Failed to fetch settings' });
     }
-  }
 
-  if (req.method === 'PUT') {
-    try {
+    if (req.method === 'PUT') {
       const updated = await updateUserSettings(req.body);
       return res.status(200).json(updated);
-    } catch (error: any) {
-      console.error('Failed to update settings:', error);
-      return res.status(500).json({ error: 'Failed to update settings' });
     }
-  }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error: any) {
+    console.error('Settings API error:', error);
+    return res.status(503).json({ error: error?.message || 'Database unavailable' });
+  }
 }

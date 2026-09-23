@@ -6,31 +6,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await initDB();
+  try {
+    await initDB();
 
-  if (req.method === 'GET') {
-    try {
+    if (req.method === 'GET') {
       const history = await getYieldHistory();
       return res.status(200).json(history);
-    } catch (error: any) {
-      console.error('Failed to fetch history:', error);
-      return res.status(500).json({ error: 'Failed to fetch history' });
     }
-  }
 
-  if (req.method === 'POST') {
-    try {
+    if (req.method === 'POST') {
       const record = req.body;
       if (!record || !record.id || !record.bankName) {
         return res.status(400).json({ error: 'Invalid record data' });
       }
       const created = await createYieldRecord(record);
       return res.status(201).json(created);
-    } catch (error: any) {
-      console.error('Failed to save yield record:', error);
-      return res.status(500).json({ error: 'Failed to save yield record' });
     }
-  }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error: any) {
+    console.error('History API error:', error);
+    return res.status(503).json({ error: error?.message || 'Database unavailable' });
+  }
 }
