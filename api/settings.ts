@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, getUserSettings, updateUserSettings } from '../lib/db';
+import { initDB, getUserSettings, updateUserSettings } from '../lib/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {

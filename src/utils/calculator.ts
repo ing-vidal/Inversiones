@@ -1,4 +1,4 @@
-import { BankAccount, DivisorBase } from '../types/finance';
+import { BankAccount, DivisorBase } from '../types/finance.js';
 
 export const SAT_ISR_DEFAULT = 0.0050; // 0.50% SAT 2026/2025
 export const SOFIPO_EXEMPTION_LIMIT = 206367.60; // 5 UMAs anuales 2026 (~$206k)

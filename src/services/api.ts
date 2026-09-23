@@ -1,4 +1,4 @@
-import { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../types/finance';
+import { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../types/finance.js';
 
 const BASE_URL = '/api';
 

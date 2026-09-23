@@ -1,4 +1,4 @@
-import { BankAccount, BankInstitution, DailyYieldRecord } from '../types/finance';
+import { BankAccount, BankInstitution, DailyYieldRecord } from '../types/finance.js';
 
 export const INITIAL_INSTITUTIONS: BankInstitution[] = [
   {

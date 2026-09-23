@@ -3,9 +3,9 @@
  * Replaces the previous SQLite server/db.ts.
  */
 import { neon } from '@neondatabase/serverless';
-import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance';
-import { INITIAL_ACCOUNTS, INITIAL_INSTITUTIONS, INITIAL_YIELD_HISTORY } from '../src/data/mockData';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator';
+import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance.js';
+import { INITIAL_ACCOUNTS, INITIAL_INSTITUTIONS, INITIAL_YIELD_HISTORY } from '../src/data/mockData.js';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator.js';
 
 function getSQL() {
   const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;

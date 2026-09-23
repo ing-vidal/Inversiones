@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initAuthDB, registerUser } from '../../lib/db';
-import { hashPassword } from '../../lib/auth';
+import { initAuthDB, registerUser } from '../../lib/db.js';
+import { hashPassword } from '../../lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
