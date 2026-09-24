@@ -107,6 +107,11 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     sofipoExemptionLimit: settings.umaValueAnnual,
     roundDailyDown: selectedInst !== null && (isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName) || isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName)),
   });
+  const termDays = frecuencia === 'vencimiento'
+    ? Math.max(1, Math.round((new Date(`${endDate}T00:00:00`).getTime() - new Date(`${startDate}T00:00:00`).getTime()) / (24 * 60 * 60 * 1000)))
+    : 0;
+  const termInterest = termDays > 0 ? liveResult.netDaily * termDays : 0;
+  const termAmount = monto + termInterest;
 
   const handleGuardarCuenta = () => {
     if (!selectedInst) {
@@ -661,17 +666,17 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               </span>
             </div>
 
-            {/* Rendimiento Diario Net */}
+            {/* Rendimiento diario o importe al vencimiento */}
             <div className="flex flex-col relative z-10 mt-1">
               <span className="font-hanken text-[12px] text-[#7c839b]">
-                Ganancia neta estimada por día
+                {frecuencia === 'vencimiento' ? 'Interés neto al vencimiento' : 'Ganancia neta estimada por día'}
               </span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <span className="font-space text-[36px] font-bold text-[#6ffbbe] tracking-tight">
-                  {formatMXN(liveResult.netDaily, { showSign: true })}
+                  {formatMXN(frecuencia === 'vencimiento' ? termInterest : liveResult.netDaily, { showSign: true })}
                 </span>
                 <span className="font-space text-[16px] text-white font-semibold">
-                  MXN / día
+                  {frecuencia === 'vencimiento' ? 'MXN' : 'MXN / día'}
                 </span>
               </div>
             </div>
@@ -680,18 +685,18 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
             <div className="grid grid-cols-2 gap-4 pt-3.5 mt-3.5 border-t border-white/10 relative z-10">
               <div className="flex flex-col">
                 <span className="font-hanken text-[12px] text-[#7c839b]">
-                  En 30 días (1 mes)
+                  {frecuencia === 'vencimiento' ? 'Plazo contratado' : 'En 30 días (1 mes)'}
                 </span>
                 <span className="font-space text-[22px] font-bold text-white">
-                  {formatMXN(liveResult.netMonthly, { showSign: true })}
+                  {frecuencia === 'vencimiento' ? `${termDays} días` : formatMXN(liveResult.netMonthly, { showSign: true })}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="font-hanken text-[12px] text-[#7c839b]">
-                  En 365 días (Compuesto)
+                  {frecuencia === 'vencimiento' ? 'Monto a recibir' : 'En 365 días (Compuesto)'}
                 </span>
                 <span className="font-space text-[22px] font-bold text-[#6ffbbe]">
-                  {formatMXN(liveResult.netYearly, { showSign: true })}
+                  {frecuencia === 'vencimiento' ? formatMXN(termAmount) : formatMXN(liveResult.netYearly, { showSign: true })}
                 </span>
               </div>
             </div>
