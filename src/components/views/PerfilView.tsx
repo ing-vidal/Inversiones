@@ -315,127 +315,207 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           Parámetros Fiscales y SAT México
         </h4>
 
-        <div className="flex flex-col gap-3 border border-[#e2e8f0] rounded-xl p-3 bg-[#f8f9ff]">
-          <div className="flex items-center justify-between">
-            <span className="font-hanken text-[12px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
-              Instituciones / SOFIPOs
-            </span>
+        <div className="rounded-2xl border border-[#dfe8ff] bg-gradient-to-br from-[#f8fbff] to-[#eef7f3] p-4 shadow-[0_10px_25px_rgba(11,28,48,0.04)]">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#006c49]/10 text-[#006c49]">
+                <span className="material-symbols-outlined text-[20px]">account_balance</span>
+              </div>
+              <div>
+                <div className="font-hanken text-[12px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                  Instituciones / SOFIPOs
+                </div>
+                <div className="font-hanken text-[10px] text-[#6b7280]">Gestión rápida</div>
+              </div>
+            </div>
             <button
               type="button"
               onClick={resetInstitutionForm}
-              className="font-hanken text-[11px] text-[#006c49] hover:underline"
+              className="rounded-full border border-[#dbe7ff] bg-white px-3 py-1.5 font-hanken text-[11px] font-semibold text-[#006c49] hover:bg-[#f0faf5]"
             >
               {editingInstitutionId ? 'Cancelar edición' : 'Nueva'}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={institutionForm.name}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
-              placeholder="Nombre"
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            />
-            <input
-              type="text"
-              value={institutionForm.shortName}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, shortName: e.target.value })}
-              placeholder="Alias / corto"
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            />
-            <input
-              type="number"
-              step="0.01"
-              value={institutionForm.rate}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, rate: e.target.value })}
-              placeholder="Tasa %"
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            />
-            <select
-              value={institutionForm.category}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, category: e.target.value as 'sofipo' | 'banco' | 'fondo' | 'cetes' })}
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            >
-              <option value="sofipo">SOFIPO</option>
-              <option value="banco">Banco</option>
-              <option value="fondo">Fondo</option>
-              <option value="cetes">Cetes</option>
-            </select>
-            <select
-              value={institutionForm.defaultBase}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, defaultBase: Number(e.target.value) as 360 | 365 })}
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            >
-              <option value={365}>365 días</option>
-              <option value={360}>360 días</option>
-            </select>
-            <select
-              value={institutionForm.defaultFreq}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, defaultFreq: e.target.value as 'diario' | 'semanal' | 'vencimiento' })}
-              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-            >
-              <option value="diario">Diario</option>
-              <option value="semanal">Semanal</option>
-              <option value="vencimiento">Vencimiento</option>
-            </select>
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-inner">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-[#dce9ff] bg-[#f6f9ff] p-2.5">
+                <div
+                  className="h-8 w-8 rounded-full border-2 border-white shadow-sm"
+                  style={{ background: institutionForm.color }}
+                />
+                <span className="font-hanken text-[11px] font-semibold text-[#0b1c30]">
+                  {institutionForm.name || 'Vista previa'}
+                </span>
+              </div>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Nombre
+                <input
+                  type="text"
+                  value={institutionForm.name}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
+                  placeholder="Ej. Banco de México"
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none ring-0 transition focus:border-[#006c49] focus:bg-white"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Alias
+                <input
+                  type="text"
+                  value={institutionForm.shortName}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, shortName: e.target.value })}
+                  placeholder="Ej. BBVA"
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Tasa %
+                <input
+                  type="number"
+                  step="0.01"
+                  value={institutionForm.rate}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, rate: e.target.value })}
+                  placeholder="12.5"
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Tipo
+                <select
+                  value={institutionForm.category}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, category: e.target.value as 'sofipo' | 'banco' | 'fondo' | 'cetes' })}
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                >
+                  <option value="sofipo">SOFIPO</option>
+                  <option value="banco">Banco</option>
+                  <option value="fondo">Fondo</option>
+                  <option value="cetes">Cetes</option>
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Base
+                <select
+                  value={institutionForm.defaultBase}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, defaultBase: Number(e.target.value) as 360 | 365 })}
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                >
+                  <option value={365}>365 días</option>
+                  <option value={360}>360 días</option>
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Frecuencia
+                <select
+                  value={institutionForm.defaultFreq}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, defaultFreq: e.target.value as 'diario' | 'semanal' | 'vencimiento' })}
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                >
+                  <option value="diario">Diario</option>
+                  <option value="semanal">Semanal</option>
+                  <option value="vencimiento">Vencimiento</option>
+                </select>
+              </label>
+
+              <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-[#e6f6ee] bg-[#f2faf6] px-3 py-2 text-[12px] font-hanken text-[#0b1c30]">
+                <span>Tasa escalonada</span>
+                <input
+                  type="checkbox"
+                  checked={institutionForm.hasDualTier}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, hasDualTier: e.target.checked })}
+                  className="h-4 w-4 accent-[#006c49]"
+                />
+              </label>
+
+              {institutionForm.hasDualTier && (
+                <>
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Umbral
+                    <input
+                      type="number"
+                      value={institutionForm.dualThreshold}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, dualThreshold: e.target.value })}
+                      placeholder="10000"
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Tasa 2
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={institutionForm.dualRate2}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, dualRate2: e.target.value })}
+                      placeholder="7"
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <input
+                type="color"
+                value={institutionForm.color}
+                onChange={(e) => setInstitutionForm({ ...institutionForm, color: e.target.value })}
+                className="h-11 w-14 cursor-pointer rounded-lg border border-[#dfe8ff] bg-white p-1"
+                aria-label="Color de la institución"
+              />
+              <button
+                type="button"
+                onClick={handleInstitutionSubmit}
+                className="flex-1 rounded-xl bg-[#006c49] px-4 py-2.5 font-hanken text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#005a3c]"
+              >
+                {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
+              </button>
+            </div>
           </div>
 
-          <label className="flex items-center justify-between gap-3 text-[12px] font-hanken">
-            <span>Tasa escalonada</span>
-            <input
-              type="checkbox"
-              checked={institutionForm.hasDualTier}
-              onChange={(e) => setInstitutionForm({ ...institutionForm, hasDualTier: e.target.checked })}
-            />
-          </label>
-
-          {institutionForm.hasDualTier && (
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                value={institutionForm.dualThreshold}
-                onChange={(e) => setInstitutionForm({ ...institutionForm, dualThreshold: e.target.value })}
-                placeholder="Umbral"
-                className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-              />
-              <input
-                type="number"
-                step="0.01"
-                value={institutionForm.dualRate2}
-                onChange={(e) => setInstitutionForm({ ...institutionForm, dualRate2: e.target.value })}
-                placeholder="Tasa 2"
-                className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
-              />
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleInstitutionSubmit}
-            className="w-full rounded-xl bg-[#006c49] text-white py-2.5 font-hanken font-semibold text-[12px]"
-          >
-            {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
-          </button>
-
-          <div className="flex flex-col gap-2 max-h-48 overflow-auto pr-1">
+          <div className="mt-4 flex flex-col gap-2 max-h-52 overflow-auto pr-1">
             {institutions.length === 0 && (
-              <div className="text-[12px] text-[#45464d]">No hay instituciones agregadas.</div>
+              <div className="rounded-xl border border-dashed border-[#cfe0ff] bg-white/80 px-3 py-3 text-center text-[12px] text-[#45464d]">
+                No hay instituciones agregadas.
+              </div>
             )}
             {institutions.map((inst) => (
-              <div key={inst.id} className="flex items-center justify-between gap-2 border border-[#e2e8f0] rounded-lg p-2 bg-white">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-8 h-8 rounded-full ${inst.badgeBg} ${inst.badgeText} flex items-center justify-center font-space text-[11px] font-bold`}>
+              <div
+                key={inst.id}
+                className="flex items-center justify-between gap-2 rounded-xl border border-[#e2e8f0] bg-white p-2.5 shadow-sm"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border border-white text-[10px] font-bold ${inst.badgeBg} ${inst.badgeText}`}
+                    style={{ backgroundColor: inst.color, opacity: 0.12 }}
+                  >
                     {inst.shortName.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-hanken text-[12px] font-semibold truncate">{inst.name}</div>
-                    <div className="font-hanken text-[10px] text-[#45464d] truncate">{inst.shortName} · {inst.rate}%</div>
+                    <div className="truncate font-hanken text-[12px] font-semibold text-[#0b1c30]">{inst.name}</div>
+                    <div className="truncate font-hanken text-[10px] text-[#45464d]">{inst.shortName} · {inst.rate}%</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1"> 
-                  <button type="button" onClick={() => startEditInstitution(inst)} className="px-2 py-1 text-[10px] bg-[#eff4ff] rounded-md">Editar</button>
-                  <button type="button" onClick={() => onDeleteInstitution(inst.id)} className="px-2 py-1 text-[10px] bg-red-50 text-red-600 rounded-md">Eliminar</button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => startEditInstitution(inst)}
+                    className="rounded-md bg-[#eff4ff] px-2 py-1 text-[10px] font-medium text-[#0b1c30]"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteInstitution(inst.id)}
+                    className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
             ))}
