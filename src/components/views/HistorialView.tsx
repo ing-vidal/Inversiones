@@ -41,9 +41,10 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
 
   const totalAccumulated = records.reduce((sum, r) => sum + r.netYield, 0);
   const totalTaxWithheld = records.reduce((sum, r) => sum + r.isrWithheld, 0);
+  const getBalanceAfterYield = (record: DailyYieldRecord) => record.balanceAtTime + record.netYield;
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Banco', 'Fecha', 'Hora', 'Rendimiento Bruto', 'ISR Retenido', 'Rendimiento Neto', 'Saldo'];
+    const headers = ['ID', 'Banco', 'Fecha', 'Hora', 'Rendimiento Bruto', 'ISR Retenido', 'Rendimiento Neto', 'Saldo después del abono'];
     const rows = filteredRecords.map((r) => [
       r.id,
       r.bankName,
@@ -52,7 +53,7 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
       r.grossYield.toFixed(2),
       r.isrWithheld.toFixed(2),
       r.netYield.toFixed(2),
-      r.balanceAtTime.toFixed(2),
+      getBalanceAfterYield(r).toFixed(2),
     ]);
 
     const csvContent =
@@ -159,6 +160,9 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
                   </span>
                   <span className="font-hanken text-[10px] text-[#76777d] whitespace-nowrap">
                     Bruto ${rec.grossYield.toFixed(2)} | SAT -${rec.isrWithheld.toFixed(2)}
+                  </span>
+                  <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
+                    Saldo: {formatMXN(getBalanceAfterYield(rec))}
                   </span>
                 </div>
               </div>
