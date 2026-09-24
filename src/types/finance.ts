@@ -42,6 +42,8 @@ export interface BankAccount {
   createdAt: string;
   startDate?: string;
   endDate?: string;
+  titleCount?: number;
+  nominalValue?: number;
   daysRemaining?: number; // for term deposits like Klar
 }
 

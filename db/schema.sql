@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   "createdAt" TEXT NOT NULL,
   "startDate" TEXT,
   "endDate" TEXT,
+  "titleCount" INTEGER,
+  "nominalValue" REAL,
   "daysRemaining" INTEGER
 );
 

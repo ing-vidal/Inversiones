@@ -35,6 +35,11 @@ export function isKuboInstitution(id: string, name = '', shortName = ''): boolea
   return values.some((value) => value.includes('kubo'));
 }
 
+export function isCetesInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('cetes'));
+}
+
 export function getInstitutionSatRate(
   id: string,
   name: string,

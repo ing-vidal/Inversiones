@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, getInstitutionSatRate, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -54,6 +54,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
   const [deductISR, setDeductISR] = useState<boolean>(true);
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [titleCount, setTitleCount] = useState<number>(0);
+  const [nominalValue, setNominalValue] = useState<number>(10);
 
   // Dual-tier specifics (for DiDi / customized accounts)
   const [isDualTier, setIsDualTier] = useState<boolean>(false);
@@ -112,6 +114,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     : 0;
   const termInterest = termDays > 0 ? liveResult.netDaily * termDays : 0;
   const termAmount = monto + termInterest;
+  const isCetes = selectedInst !== null && isCetesInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName);
+  const cetesMaturityAmount = isCetes && titleCount > 0 ? titleCount * nominalValue : termAmount;
+  const cetesInterest = cetesMaturityAmount - monto;
 
   const handleGuardarCuenta = () => {
     if (!selectedInst) {
@@ -122,6 +127,10 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     const finalNickname = accountNickname.trim() || `${selectedInst.name} Cajita`;
     if (frecuencia === 'vencimiento' && endDate < startDate) {
       showToast('La fecha final debe ser posterior o igual a la fecha inicial');
+      return;
+    }
+    if (isCetes && titleCount <= 0) {
+      showToast('Captura el número de títulos de CETES');
       return;
     }
     const newAccount: BankAccount = {
@@ -146,6 +155,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       createdAt: new Date().toISOString(),
       startDate: frecuencia === 'vencimiento' ? startDate : undefined,
       endDate: frecuencia === 'vencimiento' ? endDate : undefined,
+      titleCount: isCetes ? titleCount : undefined,
+      nominalValue: isCetes ? nominalValue : undefined,
     };
 
     onSaveAccount(newAccount);
@@ -593,6 +604,34 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               </div>
             )}
 
+            {isCetes && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#e2e8f0]/40">
+                <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
+                  Títulos CETES
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={titleCount || ''}
+                    onChange={(e) => setTitleCount(Number(e.target.value) || 0)}
+                    placeholder="1609"
+                    className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
+                  Valor nominal por título
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={nominalValue}
+                    onChange={(e) => setNominalValue(Number(e.target.value) || 0)}
+                    className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
+                  />
+                </label>
+              </div>
+            )}
+
             {/* Toggles de Reinversión e ISR */}
             <div className="flex flex-col gap-3.5 pt-2 border-t border-[#e2e8f0]/40">
               {/* Interés Compuesto Switch */}
@@ -673,7 +712,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               </span>
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <span className="font-space text-[36px] font-bold text-[#6ffbbe] tracking-tight">
-                  {formatMXN(frecuencia === 'vencimiento' ? termInterest : liveResult.netDaily, { showSign: true })}
+                  {formatMXN(frecuencia === 'vencimiento' ? (isCetes ? cetesInterest : termInterest) : liveResult.netDaily, { showSign: true })}
                 </span>
                 <span className="font-space text-[16px] text-white font-semibold">
                   {frecuencia === 'vencimiento' ? 'MXN' : 'MXN / día'}
@@ -696,7 +735,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   {frecuencia === 'vencimiento' ? 'Monto a recibir' : 'En 365 días (Compuesto)'}
                 </span>
                 <span className="font-space text-[22px] font-bold text-[#6ffbbe]">
-                  {frecuencia === 'vencimiento' ? formatMXN(termAmount) : formatMXN(liveResult.netYearly, { showSign: true })}
+                  {frecuencia === 'vencimiento' ? formatMXN(isCetes ? cetesMaturityAmount : termAmount) : formatMXN(liveResult.netYearly, { showSign: true })}
                 </span>
               </div>
             </div>
