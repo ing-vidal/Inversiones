@@ -148,11 +148,19 @@ export default function App() {
   };
 
   const handleDeleteAccount = async (id: string) => {
-    setAccounts((prev) => prev.filter((a) => a.id !== id));
+    const accountToDelete = accounts.find((a) => a.id === id);
+    if (!accountToDelete) return;
 
     try {
       setDbStatus('syncing');
-      await apiDeleteAccount(id);
+      const deleted = await apiDeleteAccount(id);
+
+      if (!deleted) {
+        throw new Error('La cuenta no pudo eliminarse en la base de datos');
+      }
+
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      setHistory((prev) => prev.filter((record) => record.accountId !== id));
       setDbStatus('connected');
     } catch (error) {
       console.error('Error al eliminar de la base de datos:', error);

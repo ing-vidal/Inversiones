@@ -354,8 +354,11 @@ export async function updateAccount(id: string, acc: Partial<BankAccount>): Prom
 
 export async function deleteAccount(id: string): Promise<boolean> {
   const sql = getSQL();
-  await sql`DELETE FROM accounts WHERE id = ${id}`;
-  return true;
+
+  await sql`DELETE FROM yield_history WHERE "accountId" = ${id}`;
+  const deletedRows = await sql`DELETE FROM accounts WHERE id = ${id} RETURNING id`;
+
+  return deletedRows.length > 0;
 }
 
 // ---------------------------------------------------------------------------
