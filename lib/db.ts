@@ -4,7 +4,6 @@
  */
 import { neon } from '@neondatabase/serverless';
 import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance.js';
-import { INITIAL_INSTITUTIONS } from '../src/data/mockData.js';
 import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator.js';
 
 function getSQL() {
@@ -130,27 +129,7 @@ export async function initAuthDB(): Promise<void> {
 async function seedIfEmpty(): Promise<void> {
   const sql = getSQL();
 
-  // Institutions
-  const instCount = await sql`SELECT COUNT(*) as count FROM institutions`;
-  if (Number(instCount[0].count) === 0) {
-    for (const inst of INITIAL_INSTITUTIONS) {
-      await sql`
-        INSERT INTO institutions (id, name, "shortName", rate, "defaultBase", "defaultFreq",
-          "hasDualTier", "dualThreshold", "dualRate2", color, "badgeBg", "badgeText",
-          category, "gatNominal", "gatReal")
-        VALUES (
-          ${inst.id}, ${inst.name}, ${inst.shortName}, ${inst.rate},
-          ${inst.defaultBase}, ${inst.defaultFreq}, ${inst.hasDualTier ? 1 : 0},
-          ${inst.dualThreshold ?? null}, ${inst.dualRate2 ?? null},
-          ${inst.color}, ${inst.badgeBg}, ${inst.badgeText},
-          ${inst.category}, ${inst.gatNominal}, ${inst.gatReal}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    }
-  }
-
-  // Keep the database empty of demo accounts and demo yield history.
+  // Keep the database free of demo institutions, accounts and yield history.
   // User Settings
   const settingsCount = await sql`SELECT COUNT(*) as count FROM user_settings`;
   if (Number(settingsCount[0].count) === 0) {

@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from './types/finance';
-import { INITIAL_INSTITUTIONS } from './data/mockData';
 import { Header } from './components/Header';
 import { BottomNav, MainTab } from './components/BottomNav';
 import { CuentasView } from './components/views/CuentasView';
@@ -38,7 +37,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('cuentas');
   const [dbStatus, setDbStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [institutions, setInstitutions] = useState<BankInstitution[]>(INITIAL_INSTITUTIONS);
+  const [institutions, setInstitutions] = useState<BankInstitution[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [history, setHistory] = useState<DailyYieldRecord[]>([]);
   const [settings, setSettings] = useState<UserSettings>({
@@ -71,7 +70,7 @@ export default function App() {
       }
 
       const [dbInstitutions, dbAccounts, dbHistory, dbSettings] = await Promise.all([
-        fetchInstitutions().catch(() => INITIAL_INSTITUTIONS),
+        fetchInstitutions().catch(() => []),
         fetchAccounts().catch(() => []),
         fetchYieldHistory().catch(() => []),
         fetchSettings().catch(() => null),
