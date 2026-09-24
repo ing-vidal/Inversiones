@@ -83,7 +83,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     if (inst.hasDualTier && inst.dualThreshold) {
       setDualThreshold(inst.dualThreshold);
     }
-    if (inst.hasDualTier && inst.dualRate2) {
+    if (inst.hasDualTier && inst.dualRate2 !== undefined) {
       setDualRate2(inst.dualRate2);
     }
   };
