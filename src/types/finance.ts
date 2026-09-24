@@ -40,6 +40,8 @@ export interface BankAccount {
   badgeText: string;
   shortCode: string;
   createdAt: string;
+  startDate?: string;
+  endDate?: string;
   daysRemaining?: number; // for term deposits like Klar
 }
 

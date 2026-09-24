@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   "badgeText" TEXT NOT NULL,
   "shortCode" TEXT NOT NULL,
   "createdAt" TEXT NOT NULL,
+  "startDate" TEXT,
+  "endDate" TEXT,
   "daysRemaining" INTEGER
 );
 

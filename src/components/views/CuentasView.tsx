@@ -52,6 +52,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
   const [frecuencia, setFrecuencia] = useState<PaymentFrequency>('diario');
   const [isCompound, setIsCompound] = useState<boolean>(true);
   const [deductISR, setDeductISR] = useState<boolean>(true);
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   // Dual-tier specifics (for DiDi / customized accounts)
   const [isDualTier, setIsDualTier] = useState<boolean>(false);
@@ -113,6 +115,10 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     }
 
     const finalNickname = accountNickname.trim() || `${selectedInst.name} Cajita`;
+    if (frecuencia === 'vencimiento' && endDate < startDate) {
+      showToast('La fecha final debe ser posterior o igual a la fecha inicial');
+      return;
+    }
     const newAccount: BankAccount = {
       id: `acc-${Date.now()}`,
       institutionId: selectedInst.id,
@@ -133,6 +139,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       badgeText: selectedInst.badgeText,
       shortCode: selectedInst.shortName.split(' ')[0] || 'MX',
       createdAt: new Date().toISOString(),
+      startDate: frecuencia === 'vencimiento' ? startDate : undefined,
+      endDate: frecuencia === 'vencimiento' ? endDate : undefined,
     };
 
     onSaveAccount(newAccount);
@@ -554,6 +562,31 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Toggles de Reinversión e ISR */}
+            {frecuencia === 'vencimiento' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#e2e8f0]/40">
+                <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
+                  Fecha inicial
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
+                  Fecha final
+                  <input
+                    type="date"
+                    min={startDate}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
+                  />
+                </label>
+              </div>
+            )}
 
             {/* Toggles de Reinversión e ISR */}
             <div className="flex flex-col gap-3.5 pt-2 border-t border-[#e2e8f0]/40">

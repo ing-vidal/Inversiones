@@ -66,9 +66,14 @@ export async function initDB(): Promise<void> {
       "badgeText" TEXT NOT NULL,
       "shortCode" TEXT NOT NULL,
       "createdAt" TEXT NOT NULL,
+      "startDate" TEXT,
+      "endDate" TEXT,
       "daysRemaining" INTEGER
     )
   `;
+
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "startDate" TEXT`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "endDate" TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS yield_history (
@@ -186,6 +191,8 @@ function mapAccount(r: any): BankAccount {
     badgeText: r.badgeText,
     shortCode: r.shortCode,
     createdAt: r.createdAt,
+    startDate: r.startDate ?? undefined,
+    endDate: r.endDate ?? undefined,
     daysRemaining: r.daysRemaining != null ? Number(r.daysRemaining) : undefined,
   };
 }
@@ -300,7 +307,7 @@ export async function createAccount(acc: BankAccount): Promise<BankAccount> {
       id, "institutionId", "institutionName", "accountNickname", balance,
       "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency",
       "isCompound", "deductISR", "isDualTier", "dualThreshold", "dualRate2",
-      color, "badgeBg", "badgeText", "shortCode", "createdAt", "daysRemaining"
+      color, "badgeBg", "badgeText", "shortCode", "createdAt", "startDate", "endDate", "daysRemaining"
     ) VALUES (
       ${acc.id}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
       ${acc.balance}, ${acc.nominalRate}, ${acc.rateType}, ${acc.rateExpiryDate ?? null},
@@ -308,7 +315,7 @@ export async function createAccount(acc: BankAccount): Promise<BankAccount> {
       ${acc.isCompound ? 1 : 0}, ${acc.deductISR ? 1 : 0}, ${acc.isDualTier ? 1 : 0},
       ${acc.dualThreshold ?? null}, ${acc.dualRate2 ?? null},
       ${acc.color}, ${acc.badgeBg}, ${acc.badgeText},
-      ${acc.shortCode}, ${acc.createdAt}, ${acc.daysRemaining ?? null}
+      ${acc.shortCode}, ${acc.createdAt}, ${acc.startDate ?? null}, ${acc.endDate ?? null}, ${acc.daysRemaining ?? null}
     )
   `;
   return acc;
@@ -350,6 +357,8 @@ export async function updateAccount(id: string, acc: Partial<BankAccount>): Prom
       "badgeBg" = ${updated.badgeBg},
       "badgeText" = ${updated.badgeText},
       "shortCode" = ${updated.shortCode},
+      "startDate" = ${updated.startDate ?? null},
+      "endDate" = ${updated.endDate ?? null},
       "daysRemaining" = ${updated.daysRemaining ?? null}
     WHERE id = ${id}
   `;
