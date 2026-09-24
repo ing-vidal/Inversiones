@@ -898,91 +898,55 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
 
             {/* Ranking List */}
             <div className="flex flex-col gap-2 mt-2">
-              {[
-                {
-                  rank: 1,
-                  name: 'Klar a 30 días (15.5%)',
-                  detail: 'Base 360 d. • Plazo con reinversión',
-                  rate: 15.5,
-                  base: 360 as DivisorBase,
-                  badgeBg: 'bg-[#00C06A]',
-                },
-                {
-                  rank: 2,
-                  name: 'Nu Cajitas (14.25%)',
-                  detail: 'Base 365 d. • Líquido 24/7 disponible',
-                  rate: 14.25,
-                  base: 365 as DivisorBase,
-                  badgeBg: 'bg-[#8A05BE]',
-                },
-                {
-                  rank: 3,
-                  name: 'Ualá Rendimientos (14.0%)',
-                  detail: 'Base 365 d. • Cuenta bancaria con seguro IPAB',
-                  rate: 14.0,
-                  base: 365 as DivisorBase,
-                  badgeBg: 'bg-red-500',
-                },
-                {
-                  rank: 4,
-                  name: 'Mercado Pago (12.0%)',
-                  detail: 'Base 365 d. • Fondo diario GBM',
-                  rate: 12.0,
-                  base: 365 as DivisorBase,
-                  badgeBg: 'bg-[#009EE3]',
-                },
-                {
-                  rank: 5,
-                  name: 'Cetesdirecto 28d (10.75%)',
-                  detail: 'Base 360 d. • Deuda soberana de México',
-                  rate: 10.75,
-                  base: 360 as DivisorBase,
-                  badgeBg: 'bg-emerald-700',
-                },
-                {
-                  rank: 6,
-                  name: 'Bancos Tradicionales (2.5%)',
-                  detail: 'Pérdida por inflación real (4.5%)',
-                  rate: 2.5,
-                  base: 360 as DivisorBase,
-                  badgeBg: 'bg-slate-400',
-                  isLoss: true,
-                },
-              ].map((item) => {
-                const simRes = calculateYield({
-                  monto,
-                  tasaNominal: item.rate,
-                  base: item.base,
-                  isCompound: true,
-                  deductISR: true,
-                });
+              {institutions
+                .map((institution) => {
+                  const simRes = calculateYield({
+                    monto,
+                    tasaNominal: institution.rate,
+                    base: institution.defaultBase,
+                    isCompound: true,
+                    deductISR: !isNuInstitution(institution.id, institution.name, institution.shortName),
+                    isDualTier: institution.hasDualTier,
+                    dualThreshold: institution.dualThreshold,
+                    dualRate2: institution.dualRate2,
+                    satRate: settings.satIsrRate,
+                    isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(institution.id),
+                    sofipoExemptionLimit: settings.umaValueAnnual,
+                    roundDailyDown:
+                      isOpenBankInstitution(institution.id, institution.name, institution.shortName) ||
+                      isDidiInstitution(institution.id, institution.name, institution.shortName),
+                  });
+
+                  return { institution, simRes };
+                })
+                .sort((a, b) => b.simRes.netYearly - a.simRes.netYearly)
+                .map(({ institution, simRes }, index) => {
+                  const rateLabel = institution.hasDualTier
+                    ? `${institution.rate}% + ${institution.dualRate2 ?? 0}%`
+                    : `${institution.rate}%`;
 
                 return (
                   <div
-                    key={item.name}
+                    key={institution.id}
                     className="p-3 rounded-xl bg-[#eff4ff] flex items-center justify-between border border-[#e2e8f0]/40 transition-all hover:bg-[#e5eeff]"
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-[12px] ${item.badgeBg}`}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[12px] ${institution.badgeBg} ${institution.badgeText}`}
                       >
-                        {item.rank}
+                        {index + 1}
                       </span>
                       <div className="flex flex-col">
                         <span className="font-hanken text-[13px] font-semibold text-[#0b1c30]">
-                          {item.name}
+                          {institution.name} ({rateLabel})
                         </span>
                         <span className="font-hanken text-[11px] text-[#45464d]">
-                          {item.detail}
+                          Base {institution.defaultBase} d. • {institution.defaultFreq}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-col text-right">
-                      <span
-                        className={`font-space text-[16px] font-bold ${
-                          item.isLoss ? 'text-red-600' : 'text-[#006c49]'
-                        }`}
-                      >
+                      <span className="font-space text-[16px] font-bold text-[#006c49]">
                         {formatMXN(simRes.netYearly, { showSign: true })}
                       </span>
                       <span className="font-hanken text-[10px] text-[#76777d]">
@@ -991,7 +955,12 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     </div>
                   </div>
                 );
-              })}
+                })}
+              {institutions.length === 0 && (
+                <div className="rounded-xl border border-dashed border-[#cbd5e1] p-6 text-center font-hanken text-[13px] text-[#76777d]">
+                  Agrega una institución en Perfil para usar el Simulador Pro.
+                </div>
+              )}
             </div>
           </div>
         </div>
