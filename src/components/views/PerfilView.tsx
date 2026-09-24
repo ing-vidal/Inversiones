@@ -173,7 +173,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       ...(isOpenBank && !editingInstitutionId
         ? {
             rate: '13',
-            defaultBase: 365,
+            defaultBase: 360,
             defaultFreq: 'diario' as const,
             hasDualTier: true,
             dualThreshold: '30000',
