@@ -172,7 +172,8 @@
 }
 
 .dark-ui [class*="bg-[#006c49]"] {
-  background-color: var(--accent-deep) !important;
+  background: linear-gradient(135deg, var(--accent-deep), var(--neon-cyan)) !important;
+  color: #04131c !important;
 }
 
 .dark-ui [class*="bg-[#006c49]/10"] {
@@ -213,9 +214,56 @@
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
 }
 
+.dark-ui select {
+  color-scheme: dark;
+}
+
+.dark-ui select option {
+  background: #0b1a2c !important;
+  color: #f5fbff !important;
+}
+
 .dark-ui input::placeholder,
 .dark-ui textarea::placeholder {
   color: #64788a;
+}
+
+.dark-ui input[type="date"],
+.dark-ui input[type="number"],
+.dark-ui input[type="color"],
+.dark-ui input[type="range"],
+.dark-ui input[type="checkbox"] {
+  color-scheme: dark;
+  accent-color: var(--accent);
+}
+
+.dark-ui input[type="range"] {
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.dark-ui input[type="color"] {
+  background: #0b1a2c !important;
+  padding: 4px;
+}
+
+.dark-ui input[type="checkbox"] {
+  accent-color: var(--accent-deep);
+}
+
+.dark-ui ::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.dark-ui ::-webkit-scrollbar-track {
+  background: #071221;
+}
+
+.dark-ui ::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--accent-deep), var(--neon-cyan));
+  border: 2px solid #071221;
+  border-radius: 999px;
 }
 
 .dark-ui [class*="shadow-"] {
