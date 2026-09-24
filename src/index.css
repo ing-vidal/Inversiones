@@ -228,6 +228,19 @@
   color: #64788a;
 }
 
+.dark-ui input:-webkit-autofill,
+.dark-ui input:-webkit-autofill:hover,
+.dark-ui input:-webkit-autofill:focus,
+.dark-ui textarea:-webkit-autofill,
+.dark-ui select:-webkit-autofill {
+  -webkit-text-fill-color: var(--accent) !important;
+  -webkit-box-shadow: 0 0 0 1000px #0b1a2c inset !important;
+  box-shadow: 0 0 0 1000px #0b1a2c inset !important;
+  border-color: var(--accent) !important;
+  caret-color: var(--accent) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 .dark-ui input[type="date"],
 .dark-ui input[type="number"],
 .dark-ui input[type="color"],
