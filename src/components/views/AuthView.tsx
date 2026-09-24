@@ -71,7 +71,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f0f4ff] via-[#f8f9ff] to-[#e8f5ee] flex flex-col items-center justify-center px-4 font-hanken">
+    <div className="dark-ui min-h-screen bg-[#080d12] flex flex-col items-center justify-center px-4 font-hanken">
       <div className="w-full max-w-md flex flex-col gap-6">
 
         {/* Branding */}

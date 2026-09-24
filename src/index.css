@@ -2,14 +2,22 @@
 
 @layer base {
   :root {
-    --font-space: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-hanken: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-space: 'Outfit', sans-serif;
+    --font-hanken: 'DM Sans', sans-serif;
+    --ink: #eef4f1;
+    --muted: #8d9b9b;
+    --surface: #111a20;
+    --surface-raised: #17232a;
+    --surface-input: #0d151b;
+    --line: #26353b;
+    --accent: #55e6a5;
+    --accent-deep: #0c9c69;
   }
 
   body {
     font-family: var(--font-hanken);
-    background-color: #f8f9ff;
-    color: #0b1c30;
+    background-color: #080d12;
+    color: var(--ink);
     overscroll-behavior-y: none;
     -webkit-font-smoothing: antialiased;
   }
@@ -37,5 +45,91 @@
 /* Custom smooth transitions */
 .transition-smooth {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dark financial workspace theme. The selectors preserve the existing component logic. */
+.dark-ui,
+.dark-ui * {
+  --tw-ring-color: rgba(85, 230, 165, 0.28);
+}
+
+.dark-ui {
+  background: #080d12 !important;
+  color: var(--ink) !important;
+}
+
+.dark-ui [class*="bg-white"],
+.dark-ui [class*="bg-[#f8f9ff]"],
+.dark-ui [class*="bg-[#f0f4ff]"],
+.dark-ui [class*="bg-[#eff4ff]"],
+.dark-ui [class*="bg-[#f6f9ff]"],
+.dark-ui [class*="bg-[#f9fbff]"],
+.dark-ui [class*="bg-[#f0faf5]"],
+.dark-ui [class*="bg-[#e8f5ee]"],
+.dark-ui [class*="bg-[#e5eeff]"],
+.dark-ui [class*="bg-[#dce9ff]"],
+.dark-ui [class*="bg-[#cfe0ff]"] {
+  background-color: var(--surface) !important;
+}
+
+.dark-ui [class*="text-[#0b1c30]"],
+.dark-ui [class*="text-[#45464d]"],
+.dark-ui [class*="text-[#76777d]"],
+.dark-ui [class*="text-slate-600"],
+.dark-ui [class*="text-slate-700"] {
+  color: var(--ink) !important;
+}
+
+.dark-ui [class*="text-[#45464d]"],
+.dark-ui [class*="text-[#76777d]"],
+.dark-ui [class*="text-slate-600"] {
+  color: var(--muted) !important;
+}
+
+.dark-ui [class*="border-[#e2e8f0]"],
+.dark-ui [class*="border-[#dce9ff]"],
+.dark-ui [class*="border-[#dfe8ff]"],
+.dark-ui [class*="border-[#dbe7ff]"],
+.dark-ui [class*="border-slate-100"] {
+  border-color: var(--line) !important;
+}
+
+.dark-ui input,
+.dark-ui select,
+.dark-ui textarea,
+.dark-ui [class*="bg-[#eff4ff]"],
+.dark-ui [class*="bg-[#f9fbff]"],
+.dark-ui [class*="bg-[#f6f9ff]"] {
+  background-color: var(--surface-input) !important;
+  color: var(--ink) !important;
+  border-color: var(--line);
+}
+
+.dark-ui input::placeholder,
+.dark-ui textarea::placeholder {
+  color: #647477;
+}
+
+.dark-ui [class*="shadow-"] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.32);
+}
+
+.dark-ui button:focus-visible,
+.dark-ui input:focus-visible,
+.dark-ui select:focus-visible,
+.dark-ui textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 

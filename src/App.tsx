@@ -388,7 +388,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30] flex flex-col font-hanken">
+    <div className="dark-ui min-h-screen bg-[#080d12] text-[#eef4f1] flex flex-col font-hanken">
       {/* Sticky Top Header with DB Connection Status & Desktop Nav */}
       <Header
         activeScreenTitle={screenTitles[activeTab]}

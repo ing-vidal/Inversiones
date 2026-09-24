@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-[#f8f9ff]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-[#e2e8f0]/60">
+    <header className="fixed top-0 w-full z-50 bg-[#0b1218]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.28)] border-b border-[#26353b]/80">
       <div className="max-w-6xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-2.5 shrink-0">
@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Navigation Bar (visible on md screens and up) */}
         {onTabChange && (
-          <nav className="hidden md:flex items-center gap-1 bg-[#eff4ff]/80 p-1 rounded-xl border border-[#dce9ff]/70">
+          <nav className="hidden md:flex items-center gap-1 bg-[#111a20]/90 p-1 rounded-xl border border-[#26353b]">
             {navTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -64,8 +64,8 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-hanken text-[13px] font-medium transition-all ${
                     isActive
-                      ? 'bg-white text-[#006c49] font-semibold shadow-xs'
-                      : 'text-[#45464d] hover:text-[#0b1c30] hover:bg-white/50'
+                      ? 'bg-[#55e6a5]/15 text-[#55e6a5] font-semibold shadow-xs'
+                      : 'text-[#8d9b9b] hover:text-[#eef4f1] hover:bg-white/5'
                   }`}
                   type="button"
                 >

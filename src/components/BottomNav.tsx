@@ -16,7 +16,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 w-full z-50 pb-[env(safe-area-inset-bottom,0px)] bg-white/95 backdrop-blur-xl border-t border-[#e2e8f0]/80 shadow-[0_-2px_12px_rgba(11,28,48,0.06)]">
+    <nav className="md:hidden fixed bottom-0 w-full z-50 pb-[env(safe-area-inset-bottom,0px)] bg-[#0b1218]/95 backdrop-blur-xl border-t border-[#26353b]/90 shadow-[0_-2px_16px_rgba(0,0,0,0.35)]">
       <div className="max-w-screen-sm mx-auto flex justify-around items-center h-16 px-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -27,8 +27,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
               onClick={() => onTabChange(tab.id)}
               className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-all select-none active:scale-95 ${
                 isActive
-                  ? 'text-[#006c49] font-semibold'
-                  : 'text-[#45464d] hover:text-[#0b1c30]'
+                  ? 'text-[#55e6a5] font-semibold'
+                  : 'text-[#8d9b9b] hover:text-[#eef4f1]'
               }`}
               type="button"
             >
