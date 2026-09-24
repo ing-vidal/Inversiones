@@ -163,6 +163,27 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
     resetInstitutionForm();
   };
 
+  const handleInstitutionNameChange = (name: string) => {
+    const normalizedName = name.toLowerCase().replace(/\s/g, '');
+    const isOpenBank = normalizedName.includes('openbank');
+
+    setInstitutionForm((current) => ({
+      ...current,
+      name,
+      ...(isOpenBank && !editingInstitutionId
+        ? {
+            rate: '13',
+            defaultBase: 365,
+            defaultFreq: 'diario' as const,
+            hasDualTier: true,
+            dualThreshold: '30000',
+            dualRate2: '7',
+            category: 'banco' as const,
+          }
+        : {}),
+    }));
+  };
+
   const startEditInstitution = (inst: BankInstitution) => {
     setEditingInstitutionId(inst.id);
     setInstitutionForm({
@@ -356,7 +377,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                 <input
                   type="text"
                   value={institutionForm.name}
-                  onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
+                  onChange={(e) => handleInstitutionNameChange(e.target.value)}
                   placeholder="Ej. Banco de México"
                   className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none ring-0 transition focus:border-[#006c49] focus:bg-white"
                 />
@@ -437,18 +458,18 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
               {institutionForm.hasDualTier && (
                 <>
                   <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
-                    Umbral
+                    Tramo 1 (límite MXN)
                     <input
                       type="number"
                       value={institutionForm.dualThreshold}
                       onChange={(e) => setInstitutionForm({ ...institutionForm, dualThreshold: e.target.value })}
-                      placeholder="10000"
+                      placeholder="30000"
                       className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
                     />
                   </label>
 
                   <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
-                    Tasa 2
+                    Tramo 2 (tasa %)
                     <input
                       type="number"
                       step="0.01"
