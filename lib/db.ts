@@ -4,7 +4,7 @@
  */
 import { neon } from '@neondatabase/serverless';
 import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance.js';
-import { INITIAL_ACCOUNTS, INITIAL_INSTITUTIONS, INITIAL_YIELD_HISTORY } from '../src/data/mockData.js';
+import { INITIAL_INSTITUTIONS } from '../src/data/mockData.js';
 import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator.js';
 
 function getSQL() {
@@ -150,50 +150,7 @@ async function seedIfEmpty(): Promise<void> {
     }
   }
 
-  // Accounts
-  const accCount = await sql`SELECT COUNT(*) as count FROM accounts`;
-  if (Number(accCount[0].count) === 0) {
-    for (const acc of INITIAL_ACCOUNTS) {
-      await sql`
-        INSERT INTO accounts (
-          id, "institutionId", "institutionName", "accountNickname", balance,
-          "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency",
-          "isCompound", "deductISR", "isDualTier", "dualThreshold", "dualRate2",
-          color, "badgeBg", "badgeText", "shortCode", "createdAt", "daysRemaining"
-        ) VALUES (
-          ${acc.id}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
-          ${acc.balance}, ${acc.nominalRate}, ${acc.rateType}, ${acc.rateExpiryDate ?? null},
-          ${acc.baseDivisor}, ${acc.paymentFrequency},
-          ${acc.isCompound ? 1 : 0}, ${acc.deductISR ? 1 : 0}, ${acc.isDualTier ? 1 : 0},
-          ${acc.dualThreshold ?? null}, ${acc.dualRate2 ?? null},
-          ${acc.color}, ${acc.badgeBg}, ${acc.badgeText},
-          ${acc.shortCode}, ${acc.createdAt}, ${acc.daysRemaining ?? null}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    }
-  }
-
-  // Yield History
-  const histCount = await sql`SELECT COUNT(*) as count FROM yield_history`;
-  if (Number(histCount[0].count) === 0) {
-    let index = INITIAL_YIELD_HISTORY.length;
-    for (const hist of INITIAL_YIELD_HISTORY) {
-      const ts = Date.now() - (index-- * 60000);
-      await sql`
-        INSERT INTO yield_history (
-          id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
-          date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
-        ) VALUES (
-          ${hist.id}, ${hist.accountId}, ${hist.bankName}, ${hist.shortCode},
-          ${hist.badgeBg}, ${hist.badgeText}, ${hist.date}, ${hist.time},
-          ${hist.grossYield}, ${hist.isrWithheld}, ${hist.netYield}, ${hist.balanceAtTime}, ${ts}
-        )
-        ON CONFLICT (id) DO NOTHING
-      `;
-    }
-  }
-
+  // Keep the database empty of demo accounts and demo yield history.
   // User Settings
   const settingsCount = await sql`SELECT COUNT(*) as count FROM user_settings`;
   if (Number(settingsCount[0].count) === 0) {
@@ -441,9 +398,16 @@ export async function resetDatabase(): Promise<void> {
   const sql = getSQL();
   await sql`DELETE FROM accounts`;
   await sql`DELETE FROM yield_history`;
-  await sql`DELETE FROM institutions`;
   await sql`DELETE FROM user_settings`;
-  await seedIfEmpty();
+  await sql`
+    INSERT INTO user_settings (id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation")
+    VALUES ('default', ${SAT_ISR_DEFAULT}, 1, ${SOFIPO_EXEMPTION_LIMIT}, ${INFLATION_ESTIMATE})
+    ON CONFLICT (id) DO UPDATE SET
+      "satIsrRate" = EXCLUDED."satIsrRate",
+      "applySofipoExemption" = EXCLUDED."applySofipoExemption",
+      "umaValueAnnual" = EXCLUDED."umaValueAnnual",
+      "expectedInflation" = EXCLUDED."expectedInflation"
+  `;
 }
 
 // ---------------------------------------------------------------------------
