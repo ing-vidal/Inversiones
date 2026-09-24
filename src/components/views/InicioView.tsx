@@ -46,7 +46,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
   // Sofipo exemption calculation
   const sofipoBalance = accounts
-    .filter((a) => ['nu', 'didi', 'klar', 'plata'].includes(a.institutionId))
+    .filter((a) => ['didi', 'klar', 'plata'].includes(a.institutionId))
     .reduce((sum, a) => sum + a.balance, 0);
   const sofipoPercent = Math.min(100, (sofipoBalance / SOFIPO_EXEMPTION_LIMIT) * 100);
 

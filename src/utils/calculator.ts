@@ -3,7 +3,7 @@ import { BankAccount, DivisorBase } from '../types/finance.js';
 export const SAT_ISR_DEFAULT = 0.0050; // 0.50% SAT 2026/2025
 export const SOFIPO_EXEMPTION_LIMIT = 206367.60; // 5 UMAs anuales 2026 (~$206k)
 export const INFLATION_ESTIMATE = 0.045; // 4.5%
-export const SOFIPO_INSTITUTION_IDS = new Set(['nu', 'didi', 'klar', 'plata']);
+export const SOFIPO_INSTITUTION_IDS = new Set(['didi', 'klar', 'plata']);
 
 export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
@@ -86,14 +86,40 @@ export function calculateYield(params: {
   // 3. Net Daily Yield
   const netDaily = Math.max(0, grossDaily - isrDaily);
 
+  const calculateNetForBalance = (balance: number): number => {
+    const tierOneBalance = isDualTier ? Math.min(balance, dualThreshold) : balance;
+    const tierTwoBalance = isDualTier ? Math.max(0, balance - dualThreshold) : 0;
+    const dailyGross = (tierOneBalance * rate1 + tierTwoBalance * rate2) / base;
+    const taxableCapital = isSofipoExempt ? Math.max(0, balance - sofipoExemptionLimit) : balance;
+    const dailyIsr = deductISR ? (taxableCapital * satRate) / base : 0;
+    return Math.round(Math.max(0, dailyGross - dailyIsr) * 100) / 100;
+  };
+
   // 4. Projections: 30 days & 365 days
   let netMonthly = 0;
   let netYearly = 0;
 
   if (isCompound) {
-    const dailyFactor = 1 + (netDaily / monto);
-    netMonthly = monto * (Math.pow(dailyFactor, 30) - 1);
-    netYearly = monto * (Math.pow(dailyFactor, 365) - 1);
+    if (isDualTier) {
+      let monthlyBalance = monto;
+      let yearlyBalance = monto;
+
+      for (let day = 0; day < 365; day += 1) {
+        const dailyBalanceYield = calculateNetForBalance(yearlyBalance);
+        yearlyBalance += dailyBalanceYield;
+
+        if (day < 30) {
+          monthlyBalance += calculateNetForBalance(monthlyBalance);
+        }
+      }
+
+      netMonthly = monthlyBalance - monto;
+      netYearly = yearlyBalance - monto;
+    } else {
+      const dailyFactor = 1 + (netDaily / monto);
+      netMonthly = monto * (Math.pow(dailyFactor, 30) - 1);
+      netYearly = monto * (Math.pow(dailyFactor, 365) - 1);
+    }
   } else {
     netMonthly = netDaily * 30;
     netYearly = netDaily * 365;
@@ -102,7 +128,7 @@ export function calculateYield(params: {
   const effectiveApy = (netYearly / monto) * 100;
 
   const formulaStr = isDualTier && monto > dualThreshold
-    ? `Fórmula: ($${dualThreshold.toLocaleString('es-MX')} × ${tasaNominal}% + $${(monto - dualThreshold).toLocaleString('es-MX')} × ${dualRate2}% ÷ ${base}d)`
+    ? `Fórmula: (($${dualThreshold.toLocaleString('es-MX')} × ${tasaNominal}%) + ($${(monto - dualThreshold).toLocaleString('es-MX')} × ${dualRate2}%)) ÷ ${base}d`
     : `Fórmula: ($${monto.toLocaleString('es-MX')} × ${tasaNominal.toFixed(2)}% ÷ ${base}d)`;
 
   const isrStr = deductISR

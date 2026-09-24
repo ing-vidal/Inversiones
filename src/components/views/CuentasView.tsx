@@ -79,6 +79,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     setBaseDivisor(inst.defaultBase);
     setFrecuencia(inst.defaultFreq);
     setIsDualTier(inst.hasDualTier);
+    setDeductISR(inst.id !== 'nu');
     if (inst.hasDualTier && inst.dualThreshold) {
       setDualThreshold(inst.dualThreshold);
     }

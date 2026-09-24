@@ -31,6 +31,33 @@ import {
   AuthUser,
 } from './services/api';
 
+const normalizeNuInstitution = (institution: BankInstitution): BankInstitution => {
+  if (institution.id !== 'nu') return institution;
+
+  return {
+    ...institution,
+    rate: 13,
+    defaultBase: 360,
+    hasDualTier: false,
+    dualThreshold: undefined,
+    dualRate2: undefined,
+  };
+};
+
+const normalizeNuAccount = (account: BankAccount): BankAccount => {
+  if (account.institutionId !== 'nu') return account;
+
+  return {
+    ...account,
+    nominalRate: 13,
+    baseDivisor: 360,
+    isDualTier: false,
+    dualThreshold: undefined,
+    dualRate2: undefined,
+    deductISR: false,
+  };
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -77,10 +104,10 @@ export default function App() {
       ]);
 
       if (dbInstitutions && dbInstitutions.length > 0) {
-        setInstitutions(dbInstitutions);
+        setInstitutions(dbInstitutions.map(normalizeNuInstitution));
       }
       if (dbAccounts) {
-        setAccounts(dbAccounts);
+        setAccounts(dbAccounts.map(normalizeNuAccount));
       }
       if (dbHistory) {
         setHistory(dbHistory);
@@ -252,7 +279,7 @@ export default function App() {
     try {
       setDbStatus('syncing');
       const res = await apiResetDatabase();
-      setAccounts(res.accounts);
+      setAccounts(res.accounts.map(normalizeNuAccount));
       setHistory(res.history);
       setSettings(res.settings);
       setDbStatus('connected');
