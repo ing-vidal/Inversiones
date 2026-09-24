@@ -109,7 +109,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     sofipoExemptionLimit: settings.umaValueAnnual,
     roundDailyDown: selectedInst !== null && (isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName) || isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName)),
   });
-  const termDays = frecuencia === 'vencimiento'
+  const hasValidTermDates = /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate)
+    && Number(startDate.slice(0, 4)) >= 2000 && Number(endDate.slice(0, 4)) >= 2000;
+  const termDays = frecuencia === 'vencimiento' && hasValidTermDates
     ? Math.max(1, Math.round((new Date(`${endDate}T00:00:00`).getTime() - new Date(`${startDate}T00:00:00`).getTime()) / (24 * 60 * 60 * 1000)))
     : 0;
   const termInterest = termDays > 0 ? liveResult.netDaily * termDays : 0;
@@ -127,6 +129,10 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     const finalNickname = accountNickname.trim() || `${selectedInst.name} Cajita`;
     if (frecuencia === 'vencimiento' && endDate < startDate) {
       showToast('La fecha final debe ser posterior o igual a la fecha inicial');
+      return;
+    }
+    if (frecuencia === 'vencimiento' && !hasValidTermDates) {
+      showToast('Captura fechas válidas con año de cuatro dígitos');
       return;
     }
     if (isCetes && titleCount <= 0) {
@@ -586,6 +592,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   Fecha inicial
                   <input
                     type="date"
+                    min="2000-01-01"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
@@ -595,7 +602,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   Fecha final
                   <input
                     type="date"
-                    min={startDate}
+                    min={startDate > '2000-01-01' ? startDate : '2000-01-01'}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
