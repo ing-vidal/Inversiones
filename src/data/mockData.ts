@@ -226,6 +226,13 @@ export const INITIAL_ACCOUNTS: BankAccount[] = [
   }
 ];
 
+const today = new Date();
+const formatHistoryDate = (date: Date) => date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+const todayLabel = `Hoy, ${formatHistoryDate(today)}`;
+const yesterday = new Date(today);
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayLabel = `Ayer, ${formatHistoryDate(yesterday)}`;
+
 export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
   {
     id: 'y-1',
@@ -234,7 +241,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'Nu',
     badgeBg: 'bg-[#8A05BE]/15',
     badgeText: 'text-[#8A05BE]',
-    date: 'Hoy, 23 Sep',
+    date: todayLabel,
     time: '00:01 AM',
     grossYield: 19.52,
     isrWithheld: 0.68,
@@ -248,7 +255,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'DiDi',
     badgeBg: 'bg-[#FF7D00]/15',
     badgeText: 'text-[#FF7D00]',
-    date: 'Hoy, 23 Sep',
+    date: todayLabel,
     time: '06:00 AM',
     grossYield: 4.34,
     isrWithheld: 0.14,
@@ -262,7 +269,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'MP',
     badgeBg: 'bg-[#009EE3]/15',
     badgeText: 'text-[#009EE3]',
-    date: 'Hoy, 23 Sep',
+    date: todayLabel,
     time: '07:30 AM',
     grossYield: 2.14,
     isrWithheld: 0.09,
@@ -276,7 +283,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'PL',
     badgeBg: 'bg-on-surface/10',
     badgeText: 'text-on-surface',
-    date: 'Hoy, 23 Sep',
+    date: todayLabel,
     time: '08:00 AM',
     grossYield: 1.46,
     isrWithheld: 0.05,
@@ -290,7 +297,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'Nu',
     badgeBg: 'bg-[#8A05BE]/15',
     badgeText: 'text-[#8A05BE]',
-    date: 'Ayer, 22 Sep',
+    date: yesterdayLabel,
     time: '00:01 AM',
     grossYield: 19.52,
     isrWithheld: 0.68,
@@ -304,7 +311,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'DiDi',
     badgeBg: 'bg-[#FF7D00]/15',
     badgeText: 'text-[#FF7D00]',
-    date: 'Ayer, 22 Sep',
+    date: yesterdayLabel,
     time: '06:00 AM',
     grossYield: 4.34,
     isrWithheld: 0.14,
@@ -318,7 +325,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'MP',
     badgeBg: 'bg-[#009EE3]/15',
     badgeText: 'text-[#009EE3]',
-    date: 'Ayer, 22 Sep',
+    date: yesterdayLabel,
     time: '07:30 AM',
     grossYield: 2.14,
     isrWithheld: 0.09,
@@ -332,7 +339,7 @@ export const INITIAL_YIELD_HISTORY: DailyYieldRecord[] = [
     shortCode: 'PL',
     badgeBg: 'bg-on-surface/10',
     badgeText: 'text-on-surface',
-    date: 'Ayer, 22 Sep',
+    date: yesterdayLabel,
     time: '08:00 AM',
     grossYield: 1.46,
     isrWithheld: 0.05,

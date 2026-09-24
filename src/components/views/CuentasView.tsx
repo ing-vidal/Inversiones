@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateYield, formatMXN, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
   accounts: BankAccount[];
+  settings: UserSettings;
   institutions: BankInstitution[];
   onSaveAccount: (newAccount: BankAccount) => void;
   onDeleteAccount: (id: string) => void;
@@ -14,6 +16,7 @@ interface CuentasViewProps {
 
 export const CuentasView: React.FC<CuentasViewProps> = ({
   accounts,
+  settings,
   institutions,
   onSaveAccount,
   onDeleteAccount,
@@ -94,7 +97,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     isDualTier,
     dualThreshold,
     dualRate2,
-    satRate: SAT_ISR_DEFAULT,
+    satRate: settings.satIsrRate || SAT_ISR_DEFAULT,
+    isSofipoExempt: settings.applySofipoExemption && selectedInst !== null && isSofipoInstitution(selectedInst.id),
+    sofipoExemptionLimit: settings.umaValueAnnual,
   });
 
   const handleGuardarCuenta = () => {

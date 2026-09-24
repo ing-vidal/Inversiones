@@ -3,6 +3,11 @@ import { BankAccount, DivisorBase } from '../types/finance.js';
 export const SAT_ISR_DEFAULT = 0.0050; // 0.50% SAT 2026/2025
 export const SOFIPO_EXEMPTION_LIMIT = 206367.60; // 5 UMAs anuales 2026 (~$206k)
 export const INFLATION_ESTIMATE = 0.045; // 4.5%
+export const SOFIPO_INSTITUTION_IDS = new Set(['nu', 'didi', 'klar', 'plata']);
+
+export function isSofipoInstitution(institutionId: string): boolean {
+  return SOFIPO_INSTITUTION_IDS.has(institutionId);
+}
 
 export interface CalculationResult {
   monto: number;
@@ -27,6 +32,7 @@ export function calculateYield(params: {
   dualRate2?: number; // e.g. 7.0
   satRate?: number;
   isSofipoExempt?: boolean;
+  sofipoExemptionLimit?: number;
 }): CalculationResult {
   const {
     monto,
@@ -39,6 +45,7 @@ export function calculateYield(params: {
     dualRate2 = 7.0,
     satRate = SAT_ISR_DEFAULT,
     isSofipoExempt = false,
+    sofipoExemptionLimit = SOFIPO_EXEMPTION_LIMIT,
   } = params;
 
   if (monto <= 0) {
@@ -72,7 +79,7 @@ export function calculateYield(params: {
   let isrDaily = 0;
   if (deductISR && (!isSofipoExempt || monto > SOFIPO_EXEMPTION_LIMIT)) {
     // If sofipo exempt and exceeds limit, only excess is subject to ISR
-    const taxableCapital = isSofipoExempt ? Math.max(0, monto - SOFIPO_EXEMPTION_LIMIT) : monto;
+    const taxableCapital = isSofipoExempt ? Math.max(0, monto - sofipoExemptionLimit) : monto;
     isrDaily = (taxableCapital * satRate) / base;
   }
 

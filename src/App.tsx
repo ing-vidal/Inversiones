@@ -12,7 +12,7 @@ import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -118,6 +118,8 @@ export default function App() {
       dualThreshold: newAcc.dualThreshold,
       dualRate2: newAcc.dualRate2,
       satRate: settings.satIsrRate,
+      isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
+      sofipoExemptionLimit: settings.umaValueAnnual,
     });
 
     const newRecord: DailyYieldRecord = {
@@ -320,6 +322,7 @@ export default function App() {
             {activeTab === 'cuentas' && (
               <CuentasView
                 accounts={accounts}
+                settings={settings}
                 institutions={institutions}
                 onSaveAccount={handleSaveAccount}
                 onDeleteAccount={handleDeleteAccount}
@@ -332,6 +335,7 @@ export default function App() {
             {activeTab === 'inicio' && (
               <InicioView
                 accounts={accounts}
+                settings={settings}
                 onNavigateToRegister={() => setActiveTab('cuentas')}
                 onNavigateToHistory={() => setActiveTab('historial')}
               />

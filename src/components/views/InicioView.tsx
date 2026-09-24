@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { BankAccount } from '../../types/finance';
-import { calculateYield, formatMXN, SOFIPO_EXEMPTION_LIMIT } from '../../utils/calculator';
+import { calculateYield, formatMXN, isSofipoInstitution, SOFIPO_EXEMPTION_LIMIT } from '../../utils/calculator';
+import { UserSettings } from '../../types/finance';
 
 interface InicioViewProps {
   accounts: BankAccount[];
+  settings: UserSettings;
   onNavigateToRegister: () => void;
   onNavigateToHistory: () => void;
 }
 
 export const InicioView: React.FC<InicioViewProps> = ({
   accounts,
+  settings,
   onNavigateToRegister,
   onNavigateToHistory,
 }) => {
@@ -30,6 +33,9 @@ export const InicioView: React.FC<InicioViewProps> = ({
         isDualTier: a.isDualTier,
         dualThreshold: a.dualThreshold,
         dualRate2: a.dualRate2,
+        satRate: settings.satIsrRate,
+        isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(a.institutionId),
+        sofipoExemptionLimit: settings.umaValueAnnual,
       }),
     };
   });
