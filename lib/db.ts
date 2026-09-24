@@ -237,6 +237,73 @@ export async function getInstitutions(): Promise<BankInstitution[]> {
   return rows.map(mapInstitution);
 }
 
+export async function createInstitution(inst: BankInstitution): Promise<BankInstitution> {
+  const sql = getSQL();
+  await sql`
+    INSERT INTO institutions (
+      id, name, "shortName", rate, "defaultBase", "defaultFreq",
+      "hasDualTier", "dualThreshold", "dualRate2", color, "badgeBg", "badgeText",
+      category, "gatNominal", "gatReal"
+    ) VALUES (
+      ${inst.id}, ${inst.name}, ${inst.shortName}, ${inst.rate},
+      ${inst.defaultBase}, ${inst.defaultFreq}, ${inst.hasDualTier ? 1 : 0},
+      ${inst.dualThreshold ?? null}, ${inst.dualRate2 ?? null}, ${inst.color},
+      ${inst.badgeBg}, ${inst.badgeText}, ${inst.category}, ${inst.gatNominal}, ${inst.gatReal}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      "shortName" = EXCLUDED."shortName",
+      rate = EXCLUDED.rate,
+      "defaultBase" = EXCLUDED."defaultBase",
+      "defaultFreq" = EXCLUDED."defaultFreq",
+      "hasDualTier" = EXCLUDED."hasDualTier",
+      "dualThreshold" = EXCLUDED."dualThreshold",
+      "dualRate2" = EXCLUDED."dualRate2",
+      color = EXCLUDED.color,
+      "badgeBg" = EXCLUDED."badgeBg",
+      "badgeText" = EXCLUDED."badgeText",
+      category = EXCLUDED.category,
+      "gatNominal" = EXCLUDED."gatNominal",
+      "gatReal" = EXCLUDED."gatReal"
+  `;
+  return inst;
+}
+
+export async function updateInstitution(id: string, inst: Partial<BankInstitution>): Promise<BankInstitution | null> {
+  const sql = getSQL();
+  const rows = await sql`SELECT * FROM institutions WHERE id = ${id}`;
+  if (rows.length === 0) return null;
+  const current = mapInstitution(rows[0]);
+  const updated = { ...current, ...inst };
+
+  await sql`
+    UPDATE institutions SET
+      name = ${updated.name},
+      "shortName" = ${updated.shortName},
+      rate = ${updated.rate},
+      "defaultBase" = ${updated.defaultBase},
+      "defaultFreq" = ${updated.defaultFreq},
+      "hasDualTier" = ${updated.hasDualTier ? 1 : 0},
+      "dualThreshold" = ${updated.dualThreshold ?? null},
+      "dualRate2" = ${updated.dualRate2 ?? null},
+      color = ${updated.color},
+      "badgeBg" = ${updated.badgeBg},
+      "badgeText" = ${updated.badgeText},
+      category = ${updated.category},
+      "gatNominal" = ${updated.gatNominal},
+      "gatReal" = ${updated.gatReal}
+    WHERE id = ${id}
+  `;
+
+  return updated;
+}
+
+export async function deleteInstitution(id: string): Promise<boolean> {
+  const sql = getSQL();
+  const deletedRows = await sql`DELETE FROM institutions WHERE id = ${id} RETURNING id`;
+  return deletedRows.length > 0;
+}
+
 // ---------------------------------------------------------------------------
 // CRUD: Accounts
 // ---------------------------------------------------------------------------

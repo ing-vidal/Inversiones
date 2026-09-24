@@ -1,23 +1,31 @@
 import React, { useState, useRef } from 'react';
-import { UserSettings } from '../../types/finance';
+import { BankInstitution, UserSettings } from '../../types/finance';
 import { AuthUser, apiUpdateAvatar } from '../../services/api';
 
 interface PerfilViewProps {
   settings: UserSettings;
+  institutions: BankInstitution[];
   onUpdateSettings: (newSettings: UserSettings) => void;
   onResetData: () => void;
   onLogout: () => void;
   currentUser?: AuthUser | null;
   onAvatarUpdate?: (updatedUser: AuthUser) => void;
+  onCreateInstitution: (institution: BankInstitution) => void;
+  onUpdateInstitution: (id: string, institution: Partial<BankInstitution>) => void;
+  onDeleteInstitution: (id: string) => void;
 }
 
 export const PerfilView: React.FC<PerfilViewProps> = ({
   settings,
+  institutions,
   onUpdateSettings,
   onResetData,
   onLogout,
   currentUser,
   onAvatarUpdate,
+  onCreateInstitution,
+  onUpdateInstitution,
+  onDeleteInstitution,
 }) => {
   const [satRatePercent, setSatRatePercent] = useState<number>(settings.satIsrRate * 100);
   const [inflationPercent, setInflationPercent] = useState<number>(settings.expectedInflation * 100);
@@ -26,6 +34,24 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [localAvatar, setLocalAvatar] = useState<string | null>(currentUser?.avatar ?? null);
+  const [institutionForm, setInstitutionForm] = useState({
+    id: '',
+    name: '',
+    shortName: '',
+    rate: '12',
+    defaultBase: 365 as 360 | 365,
+    defaultFreq: 'diario' as 'diario' | 'semanal' | 'vencimiento',
+    hasDualTier: false,
+    dualThreshold: '10000',
+    dualRate2: '7',
+    color: '#006c49',
+    badgeBg: 'bg-[#006c49]/15',
+    badgeText: 'text-[#006c49]',
+    category: 'sofipo' as 'sofipo' | 'banco' | 'fondo' | 'cetes',
+    gatNominal: '12.5',
+    gatReal: '7.5',
+  });
+  const [editingInstitutionId, setEditingInstitutionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userInitials = (currentUser?.name || 'U')
@@ -82,6 +108,78 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
     });
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 2000);
+  };
+
+  const resetInstitutionForm = () => {
+    setEditingInstitutionId(null);
+    setInstitutionForm({
+      id: '',
+      name: '',
+      shortName: '',
+      rate: '12',
+      defaultBase: 365,
+      defaultFreq: 'diario',
+      hasDualTier: false,
+      dualThreshold: '10000',
+      dualRate2: '7',
+      color: '#006c49',
+      badgeBg: 'bg-[#006c49]/15',
+      badgeText: 'text-[#006c49]',
+      category: 'sofipo',
+      gatNominal: '12.5',
+      gatReal: '7.5',
+    });
+  };
+
+  const handleInstitutionSubmit = () => {
+    const payload: BankInstitution = {
+      id: editingInstitutionId || `inst-${Date.now()}`,
+      name: institutionForm.name.trim(),
+      shortName: institutionForm.shortName.trim() || institutionForm.name.trim(),
+      rate: Number(institutionForm.rate),
+      defaultBase: institutionForm.defaultBase,
+      defaultFreq: institutionForm.defaultFreq,
+      hasDualTier: institutionForm.hasDualTier,
+      dualThreshold: institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
+      dualRate2: institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
+      color: institutionForm.color,
+      badgeBg: institutionForm.badgeBg,
+      badgeText: institutionForm.badgeText,
+      category: institutionForm.category,
+      gatNominal: Number(institutionForm.gatNominal),
+      gatReal: Number(institutionForm.gatReal),
+    };
+
+    if (!payload.name) return;
+
+    if (editingInstitutionId) {
+      onUpdateInstitution(editingInstitutionId, payload);
+    } else {
+      onCreateInstitution(payload);
+    }
+
+    resetInstitutionForm();
+  };
+
+  const startEditInstitution = (inst: BankInstitution) => {
+    setEditingInstitutionId(inst.id);
+    setInstitutionForm({
+      id: inst.id,
+      name: inst.name,
+      shortName: inst.shortName,
+      rate: String(inst.rate),
+      defaultBase: inst.defaultBase,
+      defaultFreq: inst.defaultFreq,
+      hasDualTier: inst.hasDualTier,
+      dualThreshold: String(inst.dualThreshold ?? 10000),
+      dualRate2: String(inst.dualRate2 ?? 7),
+      color: inst.color,
+      badgeBg: inst.badgeBg,
+      badgeText: inst.badgeText,
+      category: inst.category,
+      gatNominal: String(inst.gatNominal),
+      gatReal: String(inst.gatReal),
+    });
   };
 
   return (
@@ -216,6 +314,134 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           </span>
           Parámetros Fiscales y SAT México
         </h4>
+
+        <div className="flex flex-col gap-3 border border-[#e2e8f0] rounded-xl p-3 bg-[#f8f9ff]">
+          <div className="flex items-center justify-between">
+            <span className="font-hanken text-[12px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+              Instituciones / SOFIPOs
+            </span>
+            <button
+              type="button"
+              onClick={resetInstitutionForm}
+              className="font-hanken text-[11px] text-[#006c49] hover:underline"
+            >
+              {editingInstitutionId ? 'Cancelar edición' : 'Nueva'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={institutionForm.name}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
+              placeholder="Nombre"
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            />
+            <input
+              type="text"
+              value={institutionForm.shortName}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, shortName: e.target.value })}
+              placeholder="Alias / corto"
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            />
+            <input
+              type="number"
+              step="0.01"
+              value={institutionForm.rate}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, rate: e.target.value })}
+              placeholder="Tasa %"
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            />
+            <select
+              value={institutionForm.category}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, category: e.target.value as 'sofipo' | 'banco' | 'fondo' | 'cetes' })}
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            >
+              <option value="sofipo">SOFIPO</option>
+              <option value="banco">Banco</option>
+              <option value="fondo">Fondo</option>
+              <option value="cetes">Cetes</option>
+            </select>
+            <select
+              value={institutionForm.defaultBase}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, defaultBase: Number(e.target.value) as 360 | 365 })}
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            >
+              <option value={365}>365 días</option>
+              <option value={360}>360 días</option>
+            </select>
+            <select
+              value={institutionForm.defaultFreq}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, defaultFreq: e.target.value as 'diario' | 'semanal' | 'vencimiento' })}
+              className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+            >
+              <option value="diario">Diario</option>
+              <option value="semanal">Semanal</option>
+              <option value="vencimiento">Vencimiento</option>
+            </select>
+          </div>
+
+          <label className="flex items-center justify-between gap-3 text-[12px] font-hanken">
+            <span>Tasa escalonada</span>
+            <input
+              type="checkbox"
+              checked={institutionForm.hasDualTier}
+              onChange={(e) => setInstitutionForm({ ...institutionForm, hasDualTier: e.target.checked })}
+            />
+          </label>
+
+          {institutionForm.hasDualTier && (
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                value={institutionForm.dualThreshold}
+                onChange={(e) => setInstitutionForm({ ...institutionForm, dualThreshold: e.target.value })}
+                placeholder="Umbral"
+                className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+              />
+              <input
+                type="number"
+                step="0.01"
+                value={institutionForm.dualRate2}
+                onChange={(e) => setInstitutionForm({ ...institutionForm, dualRate2: e.target.value })}
+                placeholder="Tasa 2"
+                className="bg-white border border-[#dce9ff] rounded-lg px-3 py-2 text-[12px] outline-none"
+              />
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleInstitutionSubmit}
+            className="w-full rounded-xl bg-[#006c49] text-white py-2.5 font-hanken font-semibold text-[12px]"
+          >
+            {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
+          </button>
+
+          <div className="flex flex-col gap-2 max-h-48 overflow-auto pr-1">
+            {institutions.length === 0 && (
+              <div className="text-[12px] text-[#45464d]">No hay instituciones agregadas.</div>
+            )}
+            {institutions.map((inst) => (
+              <div key={inst.id} className="flex items-center justify-between gap-2 border border-[#e2e8f0] rounded-lg p-2 bg-white">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-8 h-8 rounded-full ${inst.badgeBg} ${inst.badgeText} flex items-center justify-center font-space text-[11px] font-bold`}>
+                    {inst.shortName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-hanken text-[12px] font-semibold truncate">{inst.name}</div>
+                    <div className="font-hanken text-[10px] text-[#45464d] truncate">{inst.shortName} · {inst.rate}%</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1"> 
+                  <button type="button" onClick={() => startEditInstitution(inst)} className="px-2 py-1 text-[10px] bg-[#eff4ff] rounded-md">Editar</button>
+                  <button type="button" onClick={() => onDeleteInstitution(inst.id)} className="px-2 py-1 text-[10px] bg-red-50 text-red-600 rounded-md">Eliminar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
 
         {/* SAT ISR Rate */}
         <div className="flex flex-col gap-1.5">

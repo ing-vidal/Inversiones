@@ -17,6 +17,9 @@ import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateY
 import {
   fetchHealth,
   fetchInstitutions,
+  apiCreateInstitution,
+  apiUpdateInstitution,
+  apiDeleteInstitution,
   fetchAccounts,
   apiCreateAccount,
   apiUpdateBalance,
@@ -205,6 +208,45 @@ export default function App() {
     }
   };
 
+  const handleCreateInstitution = async (institution: BankInstitution) => {
+    try {
+      setDbStatus('syncing');
+      const created = await apiCreateInstitution(institution);
+      setInstitutions((prev) => [created, ...prev]);
+      setDbStatus('connected');
+    } catch (error) {
+      console.error('Error al guardar institución:', error);
+      setDbStatus('offline');
+    }
+  };
+
+  const handleUpdateInstitution = async (id: string, institution: Partial<BankInstitution>) => {
+    try {
+      setDbStatus('syncing');
+      const updated = await apiUpdateInstitution(id, institution);
+      setInstitutions((prev) => prev.map((inst) => (inst.id === id ? updated : inst)));
+      setDbStatus('connected');
+    } catch (error) {
+      console.error('Error al actualizar institución:', error);
+      setDbStatus('offline');
+    }
+  };
+
+  const handleDeleteInstitution = async (id: string) => {
+    try {
+      setDbStatus('syncing');
+      const deleted = await apiDeleteInstitution(id);
+      if (!deleted) {
+        throw new Error('La institución no pudo eliminarse');
+      }
+      setInstitutions((prev) => prev.filter((inst) => inst.id !== id));
+      setDbStatus('connected');
+    } catch (error) {
+      console.error('Error al eliminar institución:', error);
+      setDbStatus('offline');
+    }
+  };
+
   const handleResetData = async () => {
     try {
       setDbStatus('syncing');
@@ -302,11 +344,15 @@ export default function App() {
             {activeTab === 'perfil' && (
               <PerfilView
                 settings={settings}
+                institutions={institutions}
                 onUpdateSettings={handleUpdateSettings}
                 onResetData={handleResetData}
                 onLogout={handleLogout}
                 currentUser={currentUser}
                 onAvatarUpdate={handleAvatarUpdate}
+                onCreateInstitution={handleCreateInstitution}
+                onUpdateInstitution={handleUpdateInstitution}
+                onDeleteInstitution={handleDeleteInstitution}
               />
             )}
           </>

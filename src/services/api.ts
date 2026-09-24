@@ -18,6 +18,38 @@ export async function fetchInstitutions(): Promise<BankInstitution[]> {
   return await res.json();
 }
 
+export async function apiCreateInstitution(institution: BankInstitution): Promise<BankInstitution> {
+  const res = await fetch(`${BASE_URL}/institutions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(institution),
+  });
+  if (!res.ok) throw new Error('Error al guardar institución');
+  return await res.json();
+}
+
+export async function apiUpdateInstitution(
+  id: string,
+  institution: Partial<BankInstitution>
+): Promise<BankInstitution> {
+  const res = await fetch(`${BASE_URL}/institutions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(institution),
+  });
+  if (!res.ok) throw new Error('Error al actualizar institución');
+  return await res.json();
+}
+
+export async function apiDeleteInstitution(id: string): Promise<boolean> {
+  const res = await fetch(`${BASE_URL}/institutions/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Error al eliminar institución');
+  const data = await res.json();
+  return Boolean(data.success);
+}
+
 export async function fetchAccounts(): Promise<BankAccount[]> {
   const res = await fetch(`${BASE_URL}/accounts`);
   if (!res.ok) throw new Error('Error al cargar cuentas bancarias desde la base de datos');
