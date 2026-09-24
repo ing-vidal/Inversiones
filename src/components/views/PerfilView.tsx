@@ -303,29 +303,6 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           </button>
         </div>
 
-        {/* Security & Data Storage Notice */}
-        <div className="bg-[#eff4ff] p-5 rounded-2xl border border-[#dce9ff] flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-[#006c49]">
-            <span className="material-symbols-outlined text-[22px]">
-              shield_locked
-            </span>
-            <span className="font-hanken font-semibold text-[14px]">
-              Privacidad & Cero Credenciales
-            </span>
-          </div>
-          <p className="font-hanken text-[12px] sm:text-[13px] text-[#45464d] leading-relaxed">
-            Rendimax almacena toda tu información en tu base de datos local SQLite (<code>rendimax.db</code>).
-            Nunca solicita contraseñas bancarias, tokens ni accesos a tu banca en línea. Todas las fórmulas
-            financieras se calculan de manera autónoma y segura.
-          </p>
-
-          <div className="pt-3 border-t border-[#dce9ff] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 font-hanken text-[12px] text-[#006c49] font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#006c49] inline-block animate-pulse"></span>
-              Base de Datos: SQLite (rendimax.db)
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Columna Derecha: Parámetros Fiscales y SAT México */}

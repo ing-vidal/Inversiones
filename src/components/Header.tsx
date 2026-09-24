@@ -81,37 +81,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Status Pill & User Avatar */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* DB Indicator Pill */}
-          <div
-            title={
-              dbStatus === 'connected'
-                ? 'Base de datos SQLite activa (rendimax.db)'
-                : dbStatus === 'syncing'
-                ? 'Sincronizando con base de datos...'
-                : 'Modo offline local'
-            }
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide border shadow-2xs transition-all"
-            style={{
-              backgroundColor: dbStatus === 'connected' ? '#e6f4ea' : dbStatus === 'syncing' ? '#fef7e0' : '#fce8e6',
-              borderColor: dbStatus === 'connected' ? '#b7e1cd' : dbStatus === 'syncing' ? '#fde293' : '#fdad9e',
-              color: dbStatus === 'connected' ? '#137333' : dbStatus === 'syncing' ? '#b06000' : '#c5221f',
-            }}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                dbStatus === 'connected'
-                  ? 'bg-[#137333] animate-pulse'
-                  : dbStatus === 'syncing'
-                  ? 'bg-[#b06000] animate-spin'
-                  : 'bg-[#c5221f]'
-              }`}
-            />
-            <span className="font-mono text-[11px]">
-              <span className="hidden sm:inline">SQLite DB</span>
-              <span className="sm:hidden">DB</span>
-            </span>
-          </div>
-
           <button
             aria-label="Perfil de usuario"
             onClick={onProfileClick}

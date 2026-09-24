@@ -6,17 +6,17 @@
     --font-hanken: 'DM Sans', sans-serif;
     --ink: #eef4f1;
     --muted: #8d9b9b;
-    --surface: #111a20;
-    --surface-raised: #17232a;
-    --surface-input: #0d151b;
-    --line: #26353b;
-    --accent: #55e6a5;
-    --accent-deep: #0c9c69;
+    --surface: #101c27;
+    --surface-raised: #132536;
+    --surface-input: #0b151e;
+    --line: #263b49;
+    --accent: #61f2b0;
+    --accent-deep: #00a875;
   }
 
   body {
     font-family: var(--font-hanken);
-    background-color: #080d12;
+    background-color: #060b10;
     color: var(--ink);
     overscroll-behavior-y: none;
     -webkit-font-smoothing: antialiased;
@@ -54,7 +54,7 @@
 }
 
 .dark-ui {
-  background: #080d12 !important;
+  background: #060b10 !important;
   color: var(--ink) !important;
 }
 
@@ -72,6 +72,25 @@
   background-color: var(--surface) !important;
 }
 
+.dark-ui [class*="bg-[#f1f5f9]"],
+.dark-ui [class*="bg-blue-50"],
+.dark-ui [class*="bg-slate-100"],
+.dark-ui [class*="bg-slate-200"] {
+  background-color: var(--surface-raised) !important;
+}
+
+.dark-ui [class*="bg-[#0b1c30]"],
+.dark-ui [class*="from-[#131b2e]"],
+.dark-ui [class*="to-[#0b1c30]"],
+.dark-ui [class*="to-[#040d1a]"] {
+  background: #0b1d2d !important;
+}
+
+.dark-ui [class*="from-[#f8fbff]"],
+.dark-ui [class*="to-[#eef7f3]"] {
+  background: var(--surface-raised) !important;
+}
+
 .dark-ui [class*="text-[#0b1c30]"],
 .dark-ui [class*="text-[#45464d]"],
 .dark-ui [class*="text-[#76777d]"],
@@ -84,6 +103,21 @@
 .dark-ui [class*="text-[#76777d]"],
 .dark-ui [class*="text-slate-600"] {
   color: var(--muted) !important;
+}
+
+.dark-ui [class*="text-[#006c49]"],
+.dark-ui [class*="text-[#6cf8bb]"],
+.dark-ui [class*="text-[#6ffbbe]"],
+.dark-ui [class*="text-[#009EE3]"] {
+  color: var(--accent) !important;
+}
+
+.dark-ui [class*="bg-[#006c49]"] {
+  background-color: var(--accent-deep) !important;
+}
+
+.dark-ui [class*="border-[#006c49]"] {
+  border-color: var(--accent) !important;
 }
 
 .dark-ui [class*="border-[#e2e8f0]"],
@@ -120,6 +154,35 @@
 .dark-ui textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.dark-ui [class*="rounded-2xl"] {
+  border-radius: 20px;
+}
+
+.dark-ui [class*="rounded-xl"] {
+  border-radius: 14px;
+}
+
+.dark-ui [class*="rounded-lg"] {
+  border-radius: 10px;
+}
+
+.dark-ui [class*="border-white"] {
+  border-color: rgba(148, 190, 204, 0.18) !important;
+}
+
+.dark-ui [class*="hover:bg-white"]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark-ui [class*="text-white"] {
+  color: #f5f8f7 !important;
+}
+
+.dark-ui [class*="font-bold"],
+.dark-ui [class*="font-semibold"] {
+  letter-spacing: -0.01em;
 }
 
 @media (prefers-reduced-motion: reduce) {
