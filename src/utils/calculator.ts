@@ -25,13 +25,20 @@ export function isMifelInstitution(id: string, name = '', shortName = ''): boole
   return values.some((value) => value.includes('mifel'));
 }
 
+export function isMercadoPagoInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('mercadopago') || value === 'mp');
+}
+
 export function getInstitutionSatRate(
   id: string,
   name: string,
   shortName: string,
   defaultRate: number,
 ): number {
-  return isMifelInstitution(id, name, shortName) ? 0.009 : defaultRate;
+  if (isMifelInstitution(id, name, shortName)) return 0.009;
+  if (isMercadoPagoInstitution(id, name, shortName)) return 0.0095;
+  return defaultRate;
 }
 
 export function isSofipoInstitution(institutionId: string): boolean {
