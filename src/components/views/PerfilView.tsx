@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { BankInstitution, UserSettings } from '../../types/finance';
+import { isNuInstitution } from '../../utils/calculator';
 import { AuthUser, apiUpdateAvatar } from '../../services/api';
 
 interface PerfilViewProps {
@@ -132,20 +133,21 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   };
 
   const handleInstitutionSubmit = () => {
+    const isNu = isNuInstitution(editingInstitutionId || institutionForm.id, institutionForm.name, institutionForm.shortName);
     const payload: BankInstitution = {
       id: editingInstitutionId || `inst-${Date.now()}`,
       name: institutionForm.name.trim(),
       shortName: institutionForm.shortName.trim() || institutionForm.name.trim(),
-      rate: Number(institutionForm.rate),
-      defaultBase: institutionForm.defaultBase,
+      rate: isNu ? 13 : Number(institutionForm.rate),
+      defaultBase: isNu ? 360 : institutionForm.defaultBase,
       defaultFreq: institutionForm.defaultFreq,
-      hasDualTier: institutionForm.hasDualTier,
-      dualThreshold: institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
-      dualRate2: institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
+      hasDualTier: isNu ? false : institutionForm.hasDualTier,
+      dualThreshold: isNu ? undefined : institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
+      dualRate2: isNu ? undefined : institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
       color: institutionForm.color,
       badgeBg: institutionForm.badgeBg,
       badgeText: institutionForm.badgeText,
-      category: institutionForm.category,
+      category: isNu ? 'banco' : institutionForm.category,
       gatNominal: Number(institutionForm.gatNominal),
       gatReal: Number(institutionForm.gatReal),
     };

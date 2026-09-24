@@ -5,6 +5,11 @@ export const SOFIPO_EXEMPTION_LIMIT = 206367.60; // 5 UMAs anuales 2026 (~$206k)
 export const INFLATION_ESTIMATE = 0.045; // 4.5%
 export const SOFIPO_INSTITUTION_IDS = new Set(['didi', 'klar', 'plata']);
 
+export function isNuInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase());
+  return values.includes('nu') || values.some((value) => value.includes('cajita turbo'));
+}
+
 export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
 }

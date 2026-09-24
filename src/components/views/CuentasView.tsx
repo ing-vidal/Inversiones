@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateYield, formatMXN, isNuInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -79,7 +79,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     setBaseDivisor(inst.defaultBase);
     setFrecuencia(inst.defaultFreq);
     setIsDualTier(inst.hasDualTier);
-    setDeductISR(inst.id !== 'nu');
+    setDeductISR(!isNuInstitution(inst.id, inst.name, inst.shortName));
     if (inst.hasDualTier && inst.dualThreshold) {
       setDualThreshold(inst.dualThreshold);
     }

@@ -12,7 +12,7 @@ import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isSofipoInstitution } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isNuInstitution, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -32,7 +32,7 @@ import {
 } from './services/api';
 
 const normalizeNuInstitution = (institution: BankInstitution): BankInstitution => {
-  if (institution.id !== 'nu') return institution;
+  if (!isNuInstitution(institution.id, institution.name, institution.shortName)) return institution;
 
   return {
     ...institution,
@@ -45,7 +45,7 @@ const normalizeNuInstitution = (institution: BankInstitution): BankInstitution =
 };
 
 const normalizeNuAccount = (account: BankAccount): BankAccount => {
-  if (account.institutionId !== 'nu') return account;
+  if (!isNuInstitution(account.institutionId, account.institutionName, account.shortCode)) return account;
 
   return {
     ...account,
