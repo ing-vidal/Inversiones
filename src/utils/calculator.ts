@@ -10,6 +10,11 @@ export function isNuInstitution(id: string, name = '', shortName = ''): boolean 
   return values.includes('nu') || values.some((value) => value.includes('cajita turbo'));
 }
 
+export function isOpenBankInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('openbank'));
+}
+
 export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
 }
@@ -38,6 +43,7 @@ export function calculateYield(params: {
   satRate?: number;
   isSofipoExempt?: boolean;
   sofipoExemptionLimit?: number;
+  roundDailyDown?: boolean;
 }): CalculationResult {
   const {
     monto,
@@ -51,6 +57,7 @@ export function calculateYield(params: {
     satRate = SAT_ISR_DEFAULT,
     isSofipoExempt = false,
     sofipoExemptionLimit = SOFIPO_EXEMPTION_LIMIT,
+    roundDailyDown = false,
   } = params;
 
   if (monto <= 0) {
@@ -89,7 +96,9 @@ export function calculateYield(params: {
   }
 
   // 3. Net Daily Yield
-  const netDaily = Math.max(0, grossDaily - isrDaily);
+  const normalizeDailyYield = (value: number) =>
+    roundDailyDown ? Math.floor(Math.max(0, value) * 100) / 100 : Math.max(0, value);
+  const netDaily = normalizeDailyYield(grossDaily - isrDaily);
 
   const calculateNetForBalance = (balance: number): number => {
     const tierOneBalance = isDualTier ? Math.min(balance, dualThreshold) : balance;
@@ -97,7 +106,9 @@ export function calculateYield(params: {
     const dailyGross = (tierOneBalance * rate1 + tierTwoBalance * rate2) / base;
     const taxableCapital = isSofipoExempt ? Math.max(0, balance - sofipoExemptionLimit) : balance;
     const dailyIsr = deductISR ? (taxableCapital * satRate) / base : 0;
-    return Math.round(Math.max(0, dailyGross - dailyIsr) * 100) / 100;
+    return roundDailyDown
+      ? Math.floor(Math.max(0, dailyGross - dailyIsr) * 100) / 100
+      : Math.round(Math.max(0, dailyGross - dailyIsr) * 100) / 100;
   };
 
   // 4. Projections: 30 days & 365 days
