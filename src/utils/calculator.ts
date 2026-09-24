@@ -20,6 +20,20 @@ export function isDidiInstitution(id: string, name = '', shortName = ''): boolea
   return values.some((value) => value.includes('didi'));
 }
 
+export function isMifelInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('mifel'));
+}
+
+export function getInstitutionSatRate(
+  id: string,
+  name: string,
+  shortName: string,
+  defaultRate: number,
+): number {
+  return isMifelInstitution(id, name, shortName) ? 0.009 : defaultRate;
+}
+
 export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
 }
@@ -80,7 +94,7 @@ export function calculateYield(params: {
   }
 
   const rate1 = tasaNominal / 100;
-  const rate2 = (dualRate2 || 7.0) / 100;
+  const rate2 = (dualRate2 ?? 7.0) / 100;
 
   // 1. Gross Daily Yield
   let grossDaily = 0;

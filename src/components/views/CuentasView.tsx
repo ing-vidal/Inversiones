@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateYield, formatMXN, getInstitutionSatRate, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -98,7 +98,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     isDualTier,
     dualThreshold,
     dualRate2,
-    satRate: settings.satIsrRate || SAT_ISR_DEFAULT,
+    satRate: selectedInst
+      ? getInstitutionSatRate(selectedInst.id, selectedInst.name, selectedInst.shortName, settings.satIsrRate || SAT_ISR_DEFAULT)
+      : settings.satIsrRate || SAT_ISR_DEFAULT,
     isSofipoExempt: settings.applySofipoExemption && selectedInst !== null && isSofipoInstitution(selectedInst.id),
     sofipoExemptionLimit: settings.umaValueAnnual,
     roundDailyDown: selectedInst !== null && (isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName) || isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName)),
@@ -909,7 +911,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     isDualTier: institution.hasDualTier,
                     dualThreshold: institution.dualThreshold,
                     dualRate2: institution.dualRate2,
-                    satRate: settings.satIsrRate,
+                    satRate: getInstitutionSatRate(institution.id, institution.name, institution.shortName, settings.satIsrRate),
                     isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(institution.id),
                     sofipoExemptionLimit: settings.umaValueAnnual,
                     roundDailyDown:

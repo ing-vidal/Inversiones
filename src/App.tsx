@@ -12,7 +12,7 @@ import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, getInstitutionSatRate, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -131,7 +131,7 @@ export default function App() {
             isDualTier: account.isDualTier,
             dualThreshold: account.dualThreshold,
             dualRate2: account.dualRate2,
-            satRate: activeSettings.satIsrRate,
+            satRate: getInstitutionSatRate(account.institutionId, account.institutionName, account.shortCode, activeSettings.satIsrRate),
             isSofipoExempt: activeSettings.applySofipoExemption && isSofipoInstitution(account.institutionId),
             sofipoExemptionLimit: activeSettings.umaValueAnnual,
             roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
@@ -207,7 +207,7 @@ export default function App() {
       isDualTier: newAcc.isDualTier,
       dualThreshold: newAcc.dualThreshold,
       dualRate2: newAcc.dualRate2,
-      satRate: settings.satIsrRate,
+      satRate: getInstitutionSatRate(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode, settings.satIsrRate),
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
       roundDailyDown: isOpenBankInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode) || isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
