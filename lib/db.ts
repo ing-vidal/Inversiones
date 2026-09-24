@@ -204,6 +204,7 @@ function mapHistory(r: any): DailyYieldRecord {
     isrWithheld: Number(r.isrWithheld),
     netYield: Number(r.netYield),
     balanceAtTime: Number(r.balanceAtTime),
+    createdAt: Number(r.createdAt),
   };
 }
 
@@ -380,6 +381,7 @@ export async function getYieldHistory(): Promise<DailyYieldRecord[]> {
 export async function createYieldRecord(record: DailyYieldRecord): Promise<DailyYieldRecord> {
   try {
     const sql = getSQL();
+    const createdAt = record.createdAt ?? Date.now();
     await sql`
       INSERT INTO yield_history (
         id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
@@ -388,13 +390,43 @@ export async function createYieldRecord(record: DailyYieldRecord): Promise<Daily
         ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
         ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
         ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
-        ${record.balanceAtTime}, ${Date.now()}
+        ${record.balanceAtTime}, ${createdAt}
       )
     `;
-    return record;
+    return { ...record, createdAt };
   } catch (error: any) {
     throw new Error(`createYieldRecord failed: ${error?.message || String(error)}`);
   }
+}
+
+export async function accrueAccount(
+  id: string,
+  records: DailyYieldRecord[],
+  totalDelta: number,
+): Promise<BankAccount | null> {
+  const sql = getSQL();
+  const rows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  if (rows.length === 0) return null;
+
+  const current = mapAccount(rows[0]);
+  const newBalance = Math.max(0, current.balance + totalDelta);
+  const statements = [
+    sql`UPDATE accounts SET balance = ${newBalance} WHERE id = ${id}`,
+    ...records.map((record) => sql`
+      INSERT INTO yield_history (
+        id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
+        date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
+      ) VALUES (
+        ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
+        ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
+        ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
+        ${record.balanceAtTime}, ${record.createdAt ?? Date.now()}
+      )
+    `),
+  ];
+
+  await sql.transaction(statements);
+  return { ...current, balance: newBalance };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, updateAccount, deleteAccount } from '../../lib/db.js';
+import { initDB, updateAccount, deleteAccount, accrueAccount } from '../../lib/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
@@ -15,6 +15,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'PUT') {
       const updated = await updateAccount(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
+      return res.status(200).json(updated);
+    }
+
+    if (req.method === 'POST' && req.body?.action === 'accrue') {
+      const records = Array.isArray(req.body.records) ? req.body.records : [];
+      const totalDelta = Number(req.body.totalDelta);
+      if (!Number.isFinite(totalDelta) || records.length === 0) {
+        return res.status(400).json({ error: 'Invalid accrual data' });
+      }
+
+      const updated = await accrueAccount(id, records, totalDelta);
       if (!updated) {
         return res.status(404).json({ error: 'Account not found' });
       }

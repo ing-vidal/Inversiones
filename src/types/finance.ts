@@ -56,6 +56,7 @@ export interface DailyYieldRecord {
   isrWithheld: number;
   netYield: number;
   balanceAtTime: number;
+  createdAt?: number;
 }
 
 export interface UserSettings {

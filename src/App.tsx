@@ -22,6 +22,7 @@ import {
   fetchAccounts,
   apiCreateAccount,
   apiUpdateBalance,
+  apiAccrueAccount,
   apiDeleteAccount,
   fetchYieldHistory,
   apiCreateYieldRecord,
@@ -103,14 +104,75 @@ export default function App() {
         fetchSettings().catch(() => null),
       ]);
 
+      const activeSettings = dbSettings ?? settings;
+      const currentTime = Date.now();
+      const dayInMilliseconds = 24 * 60 * 60 * 1000;
+      const accruedRecords: DailyYieldRecord[] = [];
+      const updatedAccounts = [...(dbAccounts || [])];
+
+      for (const account of updatedAccounts) {
+        const accountRecords = (dbHistory || [])
+          .filter((record) => record.accountId === account.id && record.createdAt)
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const lastTimestamp = accountRecords[0]?.createdAt || new Date(account.createdAt).getTime();
+        const elapsedDays = Math.floor((currentTime - lastTimestamp) / dayInMilliseconds);
+        if (elapsedDays <= 0) continue;
+
+        let runningBalance = account.balance;
+        const pendingRecords: DailyYieldRecord[] = [];
+        for (let day = 1; day <= elapsedDays; day += 1) {
+          const recordTimestamp = lastTimestamp + day * dayInMilliseconds;
+          const yieldCalc = calculateYield({
+            monto: runningBalance,
+            tasaNominal: account.nominalRate,
+            base: account.baseDivisor,
+            isCompound: account.isCompound,
+            deductISR: account.deductISR,
+            isDualTier: account.isDualTier,
+            dualThreshold: account.dualThreshold,
+            dualRate2: account.dualRate2,
+            satRate: activeSettings.satIsrRate,
+            isSofipoExempt: activeSettings.applySofipoExemption && isSofipoInstitution(account.institutionId),
+            sofipoExemptionLimit: activeSettings.umaValueAnnual,
+          });
+          const recordDate = new Date(recordTimestamp);
+          const pendingRecord: DailyYieldRecord = {
+            id: `y-${account.id}-${recordTimestamp}`,
+            accountId: account.id,
+            bankName: account.institutionName,
+            shortCode: account.shortCode,
+            badgeBg: account.badgeBg,
+            badgeText: account.badgeText,
+            date: recordDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }),
+            time: '00:01 AM',
+            grossYield: yieldCalc.grossDaily,
+            isrWithheld: yieldCalc.isrDaily,
+            netYield: yieldCalc.netDaily,
+            balanceAtTime: runningBalance,
+            createdAt: recordTimestamp,
+          };
+          pendingRecords.push(pendingRecord);
+          runningBalance += yieldCalc.netDaily;
+        }
+
+        const updated = await apiAccrueAccount(
+          account.id,
+          pendingRecords,
+          runningBalance - account.balance,
+        );
+        const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
+        if (accountIndex >= 0) updatedAccounts[accountIndex] = normalizeNuAccount(updated);
+        accruedRecords.push(...pendingRecords);
+      }
+
       if (dbInstitutions && dbInstitutions.length > 0) {
         setInstitutions(dbInstitutions.map(normalizeNuInstitution));
       }
       if (dbAccounts) {
-        setAccounts(dbAccounts.map(normalizeNuAccount));
+        setAccounts(updatedAccounts.map(normalizeNuAccount));
       }
       if (dbHistory) {
-        setHistory(dbHistory);
+        setHistory([...accruedRecords.reverse(), ...dbHistory]);
       }
       if (dbSettings) {
         setSettings(dbSettings);

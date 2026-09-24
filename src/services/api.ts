@@ -86,6 +86,20 @@ export async function apiUpdateBalance(id: string, amountDelta: number): Promise
   return await res.json();
 }
 
+export async function apiAccrueAccount(
+  id: string,
+  records: DailyYieldRecord[],
+  totalDelta: number,
+): Promise<BankAccount> {
+  const res = await fetch(`${BASE_URL}/accounts/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'accrue', records, totalDelta }),
+  });
+  if (!res.ok) throw new Error('Error al calcular rendimientos pendientes');
+  return await res.json();
+}
+
 export async function apiDeleteAccount(id: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'DELETE',
