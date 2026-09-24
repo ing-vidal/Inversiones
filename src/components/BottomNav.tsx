@@ -23,6 +23,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
           return (
             <button
               key={tab.id}
+              data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-all select-none active:scale-95 ${
                 isActive

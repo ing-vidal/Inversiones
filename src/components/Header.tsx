@@ -60,6 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <button
                   key={tab.id}
+                  data-tab={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-hanken text-[13px] font-medium transition-all ${
                     isActive

@@ -324,6 +324,7 @@ export default function App() {
                 onSaveAccount={handleSaveAccount}
                 onDeleteAccount={handleDeleteAccount}
                 onDepositWithdraw={handleDepositWithdraw}
+                onOpenProfile={() => setActiveTab('perfil')}
                 initialSubTab="registrar"
               />
             )}

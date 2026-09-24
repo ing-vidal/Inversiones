@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
 import { calculateYield, formatMXN, SAT_ISR_DEFAULT } from '../../utils/calculator';
 
@@ -8,6 +8,7 @@ interface CuentasViewProps {
   onSaveAccount: (newAccount: BankAccount) => void;
   onDeleteAccount: (id: string) => void;
   onDepositWithdraw: (accountId: string, amountDelta: number) => void;
+  onOpenProfile?: () => void;
   initialSubTab?: 'cuentas' | 'registrar' | 'simulador';
 }
 
@@ -17,14 +18,29 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
   onSaveAccount,
   onDeleteAccount,
   onDepositWithdraw,
+  onOpenProfile,
   initialSubTab = 'registrar',
 }) => {
   const [subTab, setSubTab] = useState<'cuentas' | 'registrar' | 'simulador'>(initialSubTab);
+  const activeInstitution = institutions.find((i) => i.id === 'nu') || institutions[0] || null;
 
   // Form State matching the screenshot
-  const [selectedInst, setSelectedInst] = useState<BankInstitution>(
-    institutions.find((i) => i.id === 'nu') || institutions[0]
-  );
+  const [selectedInst, setSelectedInst] = useState<BankInstitution | null>(activeInstitution);
+
+  useEffect(() => {
+    if (institutions.length === 0) {
+      setSelectedInst(null);
+      return;
+    }
+
+    setSelectedInst((prev) => {
+      if (prev && institutions.some((inst) => inst.id === prev.id)) {
+        return prev;
+      }
+      return activeInstitution;
+    });
+  }, [institutions, activeInstitution]);
+
   const [accountNickname, setAccountNickname] = useState('');
   const [monto, setMonto] = useState<number>(50000);
   const [tasa, setTasa] = useState<number>(14.25);
@@ -82,6 +98,11 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
   });
 
   const handleGuardarCuenta = () => {
+    if (!selectedInst) {
+      showToast('Primero agrega una institución en el perfil');
+      return;
+    }
+
     const finalNickname = accountNickname.trim() || `${selectedInst.name} Cajita`;
     const newAccount: BankAccount = {
       id: `acc-${Date.now()}`,
@@ -193,7 +214,26 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
 
       {/* SUB-TAB 1: + REGISTRAR (EXACT SCREENSHOT MATCH) */}
       {subTab === 'registrar' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        institutions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#cfe0ff] bg-white p-8 text-center shadow-sm">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5ee] text-[#006c49]">
+              <span className="material-symbols-outlined text-[28px]">account_balance</span>
+            </div>
+            <h3 className="font-hanken text-[20px] font-semibold text-[#0b1c30]">No hay instituciones disponibles</h3>
+            <p className="mt-2 max-w-md font-hanken text-[13px] text-[#45464d]">
+              Agrega al menos una institución o SOFIPO en la sección de perfil para poder registrar cuentas.
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.()}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#006c49] px-4 py-2.5 font-hanken text-[12px] font-semibold text-white shadow-sm hover:bg-[#005a3c]"
+            >
+              <span className="material-symbols-outlined text-[16px]">settings</span>
+              Ir a Perfil e ingresar institución
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Columna Izquierda: Configuración de la Cuenta (7 cols en desktop) */}
           <div className="lg:col-span-7 flex flex-col gap-4">
             {/* Header Banner / Context */}
@@ -218,14 +258,14 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 1. Institución o SOFIPO
               </span>
               <span className="font-hanken text-[12px] text-[#006c49] font-semibold">
-                {selectedInst.name} ({selectedInst.rate}%)
+                {selectedInst?.name ?? 'Sin institución'} ({selectedInst?.rate ?? 0}%)
               </span>
             </div>
 
             {/* Chips Carousel on Mobile / Grid on Desktop */}
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap no-scrollbar">
               {institutions.map((inst) => {
-                const isSelected = selectedInst.id === inst.id;
+                const isSelected = selectedInst?.id === inst.id;
                 return (
                   <button
                     key={inst.id}
@@ -353,7 +393,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 type="text"
                 value={accountNickname}
                 onChange={(e) => setAccountNickname(e.target.value)}
-                placeholder={`Ej. ${selectedInst.name} Ahorro Meta`}
+                placeholder={`Ej. ${selectedInst?.name ?? 'Institución'} Ahorro Meta`}
                 className="w-full bg-[#eff4ff] px-3 py-2 rounded-lg font-hanken text-[13px] text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
               />
             </div>
@@ -574,7 +614,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 </span>
               </div>
               <span className="font-hanken text-[12px] bg-white/15 px-2.5 py-0.5 rounded-full text-white backdrop-blur-sm font-medium">
-                {selectedInst.name}
+                {selectedInst?.name ?? 'Sin institución'}
               </span>
             </div>
 
@@ -639,6 +679,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* SUB-TAB 2: MIS CUENTAS ACTIVAS */}
