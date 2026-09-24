@@ -314,17 +314,6 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
               <span className="w-2.5 h-2.5 rounded-full bg-[#006c49] inline-block animate-pulse"></span>
               Base de Datos: SQLite (rendimax.db)
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('¿Restablecer la base de datos con las cuentas y datos iniciales de fábrica?')) {
-                  onResetData();
-                }
-              }}
-              className="font-hanken text-[11px] text-red-600 hover:underline text-left sm:text-right"
-            >
-              Restablecer Base de Datos
-            </button>
           </div>
         </div>
       </div>
