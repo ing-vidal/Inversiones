@@ -2,30 +2,42 @@ import React, { useState } from 'react';
 import { DailyYieldRecord } from '../../types/finance';
 import { formatMXN } from '../../utils/calculator';
 
+import { BankInstitution } from '../../types/finance';
+
 interface HistorialViewProps {
   records: DailyYieldRecord[];
+  institutions?: BankInstitution[];
 }
 
-export const HistorialView: React.FC<HistorialViewProps> = ({ records }) => {
+export const HistorialView: React.FC<HistorialViewProps> = ({ records, institutions = [] }) => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   const filterOptions = [
     { id: 'all', label: 'Todos los bancos' },
-    { id: 'Nu', label: 'Nu México' },
-    { id: 'DiDi', label: 'DiDi Cuenta' },
-    { id: 'MP', label: 'Mercado Pago' },
-    { id: 'PL', label: 'Banco Plata' },
-    { id: 'K', label: 'Klar Plazo' },
+    ...institutions.map((inst) => ({
+      id: inst.id,
+      label: inst.name,
+    })),
   ];
+
+  const selectedInstitution = institutions.find((inst) => inst.id === selectedFilter);
 
   const filteredRecords =
     selectedFilter === 'all'
       ? records
-      : records.filter(
-          (r) =>
-            r.shortCode.toLowerCase() === selectedFilter.toLowerCase() ||
-            r.bankName.toLowerCase().includes(selectedFilter.toLowerCase())
-        );
+      : records.filter((r) => {
+          if (!selectedInstitution) return false;
+
+          const matchesName =
+            r.bankName.toLowerCase() === selectedInstitution.name.toLowerCase() ||
+            r.bankName.toLowerCase().includes(selectedInstitution.name.toLowerCase()) ||
+            r.bankName.toLowerCase().includes(selectedInstitution.shortName.toLowerCase());
+
+          const matchesShortCode = r.shortCode.toLowerCase() === selectedInstitution.shortName.toLowerCase() ||
+            r.shortCode.toLowerCase() === selectedInstitution.name.toLowerCase().slice(0, 2).toLowerCase();
+
+          return matchesName || matchesShortCode;
+        });
 
   const totalAccumulated = records.reduce((sum, r) => sum + r.netYield, 0);
   const totalTaxWithheld = records.reduce((sum, r) => sum + r.isrWithheld, 0);
