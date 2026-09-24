@@ -68,15 +68,34 @@
 .dark-ui [class*="bg-[#e8f5ee]"],
 .dark-ui [class*="bg-[#e5eeff]"],
 .dark-ui [class*="bg-[#dce9ff]"],
-.dark-ui [class*="bg-[#cfe0ff]"] {
+.dark-ui [class*="bg-[#cfe0ff]"],
+.dark-ui [class*="bg-[#e5eeff]"],
+.dark-ui [class*="bg-[#f1f5f9]"],
+.dark-ui [class*="bg-[#f2faf6]"],
+.dark-ui [class*="bg-[#f6f9ff]"],
+.dark-ui [class*="bg-[#f9fbff]"],
+.dark-ui [class*="bg-[#f0faf5]"] {
   background-color: var(--surface) !important;
 }
 
-.dark-ui [class*="bg-[#f1f5f9]"],
 .dark-ui [class*="bg-blue-50"],
 .dark-ui [class*="bg-slate-100"],
-.dark-ui [class*="bg-slate-200"] {
+.dark-ui [class*="bg-slate-200"],
+.dark-ui [class*="bg-red-50"],
+.dark-ui [class*="bg-red-100"] {
   background-color: var(--surface-raised) !important;
+}
+
+.dark-ui [class*="bg-white/5"] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark-ui [class*="bg-white/10"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-ui [class*="bg-white/15"] {
+  background-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .dark-ui [class*="bg-[#0b1c30]"],
@@ -124,6 +143,11 @@
 .dark-ui [class*="border-[#dce9ff]"],
 .dark-ui [class*="border-[#dfe8ff]"],
 .dark-ui [class*="border-[#dbe7ff]"],
+.dark-ui [class*="border-[#dfe8ff]"],
+.dark-ui [class*="border-[#cfe0ff]"],
+.dark-ui [class*="border-[#cbd5e1]"],
+.dark-ui [class*="border-[#eff4ff]"],
+.dark-ui [class*="border-[#e6f6ee]"],
 .dark-ui [class*="border-slate-100"] {
   border-color: var(--line) !important;
 }
