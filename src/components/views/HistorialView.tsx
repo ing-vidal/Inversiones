@@ -11,6 +11,7 @@ interface HistorialViewProps {
 
 export const HistorialView: React.FC<HistorialViewProps> = ({ records, institutions = [] }) => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'month' | 'year' | 'all'>('all');
 
   const filterOptions = [
     { id: 'all', label: 'Todos los bancos' },
@@ -22,42 +23,66 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
 
   const selectedInstitution = institutions.find((inst) => inst.id === selectedFilter);
 
-  const filteredRecords =
-    selectedFilter === 'all'
-      ? records
-      : records.filter((r) => {
-          if (!selectedInstitution) return false;
+  const getRecordDate = (record: DailyYieldRecord) => {
+    if (record.createdAt) return new Date(record.createdAt);
+    if (record.date.toLowerCase().startsWith('hoy')) return new Date();
+    return null;
+  };
 
-          const matchesName =
-            r.bankName.toLowerCase() === selectedInstitution.name.toLowerCase() ||
-            r.bankName.toLowerCase().includes(selectedInstitution.name.toLowerCase()) ||
-            r.bankName.toLowerCase().includes(selectedInstitution.shortName.toLowerCase());
+  const isInSelectedPeriod = (record: DailyYieldRecord) => {
+    if (selectedPeriod === 'all') return true;
+    const recordDate = getRecordDate(record);
+    if (!recordDate) return false;
 
-          const matchesShortCode = r.shortCode.toLowerCase() === selectedInstitution.shortName.toLowerCase() ||
-            r.shortCode.toLowerCase() === selectedInstitution.name.toLowerCase().slice(0, 2).toLowerCase();
+    const now = new Date();
+    if (selectedPeriod === 'day') {
+      return recordDate.toDateString() === now.toDateString();
+    }
+    if (selectedPeriod === 'month') {
+      return recordDate.getFullYear() === now.getFullYear() && recordDate.getMonth() === now.getMonth();
+    }
+    return recordDate.getFullYear() === now.getFullYear();
+  };
 
-          return matchesName || matchesShortCode;
-        });
+  const filteredRecords = records.filter((record) => {
+    const matchesInstitution = (() => {
+      if (selectedFilter === 'all') return true;
+      if (!selectedInstitution) return false;
 
-  const totalAccumulated = records.reduce((sum, r) => sum + r.netYield, 0);
-  const totalTaxWithheld = records.reduce((sum, r) => sum + r.isrWithheld, 0);
+      const matchesName =
+        record.bankName.toLowerCase() === selectedInstitution.name.toLowerCase() ||
+        record.bankName.toLowerCase().includes(selectedInstitution.name.toLowerCase()) ||
+        record.bankName.toLowerCase().includes(selectedInstitution.shortName.toLowerCase());
+
+      const matchesShortCode = record.shortCode.toLowerCase() === selectedInstitution.shortName.toLowerCase() ||
+        record.shortCode.toLowerCase() === selectedInstitution.name.toLowerCase().slice(0, 2).toLowerCase();
+
+      return matchesName || matchesShortCode;
+    })();
+
+    return matchesInstitution && isInSelectedPeriod(record);
+  });
+
+  const totalAccumulated = filteredRecords.reduce((sum, r) => sum + r.netYield, 0);
+  const totalTaxWithheld = filteredRecords.reduce((sum, r) => sum + r.isrWithheld, 0);
+
+  const csvEscape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
 
   const handleExportCSV = () => {
     const headers = ['ID', 'Banco', 'Fecha', 'Hora', 'Rendimiento Bruto', 'ISR Retenido', 'Rendimiento Neto', 'Saldo actual'];
     const rows = filteredRecords.map((r) => [
-      r.id,
-      r.bankName,
-      r.date,
-      r.time,
-      r.grossYield.toFixed(2),
-      r.isrWithheld.toFixed(2),
-      r.netYield.toFixed(2),
-      r.balanceAtTime.toFixed(2),
+      csvEscape(r.id),
+      csvEscape(r.bankName),
+      csvEscape(r.date),
+      csvEscape(r.time),
+      csvEscape(r.grossYield.toFixed(2)),
+      csvEscape(r.isrWithheld.toFixed(2)),
+      csvEscape(r.netYield.toFixed(2)),
+      csvEscape(r.balanceAtTime.toFixed(2)),
     ]);
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' +
+      [headers.map(csvEscape).join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -66,6 +91,83 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) return;
+
+    const periodLabel = selectedPeriod === 'day'
+      ? 'Día actual'
+      : selectedPeriod === 'month'
+      ? 'Mes actual'
+      : selectedPeriod === 'year'
+      ? 'Año actual'
+      : 'Desde el principio';
+    const bankLabel = selectedInstitution?.name ?? 'Todos los bancos';
+    const escapeHtml = (value: string) => value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="es">
+        <head>
+          <meta charset="utf-8" />
+          <title>Rendimax - Historial de abonos</title>
+          <style>
+            @page { size: A4; margin: 18mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #17233b; font: 12px Arial, sans-serif; }
+            header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #00b981; padding-bottom: 14px; margin-bottom: 22px; }
+            h1 { margin: 0; font-size: 24px; color: #0c1830; }
+            .meta { color: #607089; text-align: right; line-height: 1.6; }
+            .summary { display: flex; gap: 36px; margin-bottom: 18px; }
+            .metric span { display: block; color: #607089; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+            .metric strong { display: block; margin-top: 4px; color: #00a879; font-size: 18px; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #0d2036; color: white; padding: 9px 7px; text-align: left; font-size: 10px; }
+            td { border-bottom: 1px solid #dce5ed; padding: 8px 7px; }
+            td.amount { color: #009b70; font-weight: 700; text-align: right; }
+            td.number { text-align: right; }
+            footer { margin-top: 18px; color: #718096; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div><h1>Rendimax</h1><div>Historial de abonos</div></div>
+            <div class="meta">Banco: ${escapeHtml(bankLabel)}<br />Periodo: ${periodLabel}</div>
+          </header>
+          <section class="summary">
+            <div class="metric"><span>Rendimiento neto</span><strong>${formatMXN(totalAccumulated, { showSign: true })} MXN</strong></div>
+            <div class="metric"><span>ISR retenido</span><strong>-${formatMXN(totalTaxWithheld)} MXN</strong></div>
+            <div class="metric"><span>Registros</span><strong>${filteredRecords.length}</strong></div>
+          </section>
+          <table>
+            <thead><tr><th>Banco</th><th>Fecha</th><th>Hora</th><th>Bruto</th><th>ISR</th><th>Neto</th><th>Saldo actual</th></tr></thead>
+            <tbody>
+              ${filteredRecords.map((record) => `
+                <tr>
+                  <td>${escapeHtml(record.bankName)}</td>
+                  <td>${escapeHtml(record.date)}</td>
+                  <td>${escapeHtml(record.time)}</td>
+                  <td class="number">$${record.grossYield.toFixed(2)}</td>
+                  <td class="number">-$${record.isrWithheld.toFixed(2)}</td>
+                  <td class="amount">${formatMXN(record.netYield, { showSign: true })}</td>
+                  <td class="number">${formatMXN(record.balanceAtTime)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <footer>Generado por Rendimax el ${new Date().toLocaleString('es-MX')}</footer>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onafterprint = () => printWindow.close();
+    printWindow.onload = () => printWindow.print();
   };
 
   return (
@@ -84,35 +186,53 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
           </span>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="self-start sm:self-center px-4 py-2.5 bg-[#eff4ff] hover:bg-[#e5eeff] text-[#0b1c30] rounded-xl font-hanken text-[13px] font-semibold flex items-center gap-2 transition-all border border-[#dce9ff] shadow-xs active:scale-95 shrink-0"
-          type="button"
-          title="Descargar reporte completo en formato CSV / Excel"
-        >
-          <span className="material-symbols-outlined text-[19px] text-[#006c49]">
-            download
-          </span>
-          <span>Exportar Historial</span>
-        </button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-center">
+          <button
+            onClick={handleExportCSV}
+            className="px-3.5 py-2.5 bg-[#eff4ff] hover:bg-[#e5eeff] text-[#0b1c30] rounded-xl font-hanken text-[13px] font-semibold flex items-center gap-2 transition-all border border-[#dce9ff] shadow-xs active:scale-95"
+            type="button"
+            title="Descargar historial en CSV"
+          >
+            <span className="material-symbols-outlined text-[19px] text-[#006c49]">download</span>
+            <span>CSV</span>
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="px-3.5 py-2.5 bg-[#006c49] hover:bg-[#005a3c] text-white rounded-xl font-hanken text-[13px] font-semibold flex items-center gap-2 transition-all shadow-xs active:scale-95"
+            type="button"
+            title="Abrir historial para guardar como PDF"
+          >
+            <span className="material-symbols-outlined text-[19px]">picture_as_pdf</span>
+            <span>PDF</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar flex-wrap sm:flex-nowrap">
-        {filterOptions.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => setSelectedFilter(opt.id)}
-            className={`px-3.5 py-1.5 rounded-full font-hanken text-[12px] shrink-0 transition-all ${
-              selectedFilter === opt.id
-                ? 'bg-[#0b1c30] text-white font-semibold shadow-xs'
-                : 'bg-white text-[#45464d] hover:bg-slate-100 border border-[#e2e8f0]/80'
-            }`}
-            type="button"
+      {/* Filter controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+        <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold uppercase tracking-wider text-[#45464d]">
+          Institución
+          <select
+            value={selectedFilter}
+            onChange={(event) => setSelectedFilter(event.target.value)}
+            className="w-full bg-[#eff4ff] border border-[#dce9ff] rounded-xl px-3.5 py-3 text-[13px] font-hanken font-semibold text-[#0b1c30] outline-none"
           >
-            {opt.label}
-          </button>
-        ))}
+            {filterOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-bold uppercase tracking-wider text-[#45464d]">
+          Periodo
+          <select
+            value={selectedPeriod}
+            onChange={(event) => setSelectedPeriod(event.target.value as typeof selectedPeriod)}
+            className="w-full bg-[#eff4ff] border border-[#dce9ff] rounded-xl px-3.5 py-3 text-[13px] font-hanken font-semibold text-[#0b1c30] outline-none"
+          >
+            <option value="day">Día actual</option>
+            <option value="month">Mes actual</option>
+            <option value="year">Año actual</option>
+            <option value="all">Desde el principio</option>
+          </select>
+        </label>
       </div>
 
       {/* Transactions Feed - Responsive 2-column on md/lg desktop */}
