@@ -15,6 +15,11 @@ export function isOpenBankInstitution(id: string, name = '', shortName = ''): bo
   return values.some((value) => value.includes('openbank'));
 }
 
+export function isDidiInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('didi'));
+}
+
 export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
 }

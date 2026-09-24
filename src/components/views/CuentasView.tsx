@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateYield, formatMXN, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -101,7 +101,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     satRate: settings.satIsrRate || SAT_ISR_DEFAULT,
     isSofipoExempt: settings.applySofipoExemption && selectedInst !== null && isSofipoInstitution(selectedInst.id),
     sofipoExemptionLimit: settings.umaValueAnnual,
-    roundDailyDown: selectedInst !== null && isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName),
+    roundDailyDown: selectedInst !== null && (isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName) || isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName)),
   });
 
   const handleGuardarCuenta = () => {
@@ -152,7 +152,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       isDualTier: curr.isDualTier,
       dualThreshold: curr.dualThreshold,
       dualRate2: curr.dualRate2,
-      roundDailyDown: isOpenBankInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
+      roundDailyDown: isOpenBankInstitution(curr.institutionId, curr.institutionName, curr.shortCode) || isDidiInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
     });
     return acc + res.netDaily;
   }, 0);
@@ -740,7 +740,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               isDualTier: acc.isDualTier,
               dualThreshold: acc.dualThreshold,
               dualRate2: acc.dualRate2,
-              roundDailyDown: isOpenBankInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
+              roundDailyDown: isOpenBankInstitution(acc.institutionId, acc.institutionName, acc.shortCode) || isDidiInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
             });
 
             return (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BankAccount } from '../../types/finance';
-import { calculateYield, formatMXN, isOpenBankInstitution, isSofipoInstitution, SOFIPO_EXEMPTION_LIMIT } from '../../utils/calculator';
+import { calculateYield, formatMXN, isDidiInstitution, isOpenBankInstitution, isSofipoInstitution, SOFIPO_EXEMPTION_LIMIT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface InicioViewProps {
@@ -36,7 +36,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
         satRate: settings.satIsrRate,
         isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(a.institutionId),
         sofipoExemptionLimit: settings.umaValueAnnual,
-        roundDailyDown: isOpenBankInstitution(a.institutionId, a.institutionName, a.shortCode),
+        roundDailyDown: isOpenBankInstitution(a.institutionId, a.institutionName, a.shortCode) || isDidiInstitution(a.institutionId, a.institutionName, a.shortCode),
       }),
     };
   });

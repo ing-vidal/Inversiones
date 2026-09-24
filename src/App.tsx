@@ -12,7 +12,7 @@ import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -134,7 +134,7 @@ export default function App() {
             satRate: activeSettings.satIsrRate,
             isSofipoExempt: activeSettings.applySofipoExemption && isSofipoInstitution(account.institutionId),
             sofipoExemptionLimit: activeSettings.umaValueAnnual,
-            roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode),
+            roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
           });
           const recordDate = new Date(recordTimestamp);
           const pendingRecord: DailyYieldRecord = {
@@ -210,7 +210,7 @@ export default function App() {
       satRate: settings.satIsrRate,
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
-      roundDailyDown: isOpenBankInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
+      roundDailyDown: isOpenBankInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode) || isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
     });
 
     const newRecord: DailyYieldRecord = {
