@@ -856,7 +856,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     </div>
                   </div>
 
-                  <span className="bg-[#006c49]/10 text-[#006c49] font-hanken text-[12px] font-bold px-2.5 py-1 rounded-full shrink-0">
+                  <span className="neon-rate-badge font-hanken text-[12px] font-bold px-2.5 py-1 rounded-full shrink-0">
                     {acc.isDualTier
                       ? `${acc.nominalRate}% + ${acc.dualRate2}%`
                       : `${acc.nominalRate}% APY`}
