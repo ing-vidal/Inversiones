@@ -30,6 +30,11 @@ export function isMercadoPagoInstitution(id: string, name = '', shortName = ''):
   return values.some((value) => value.includes('mercadopago') || value === 'mp');
 }
 
+export function isKuboInstitution(id: string, name = '', shortName = ''): boolean {
+  const values = [id, name, shortName].map((value) => value.trim().toLowerCase().replace(/\s/g, ''));
+  return values.some((value) => value.includes('kubo'));
+}
+
 export function getInstitutionSatRate(
   id: string,
   name: string,
@@ -37,6 +42,7 @@ export function getInstitutionSatRate(
   defaultRate: number,
 ): number {
   if (isMifelInstitution(id, name, shortName)) return 0.009;
+  if (isKuboInstitution(id, name, shortName)) return 0.009;
   if (isMercadoPagoInstitution(id, name, shortName)) return 0.0095;
   return defaultRate;
 }

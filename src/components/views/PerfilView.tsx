@@ -166,6 +166,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   const handleInstitutionNameChange = (name: string) => {
     const normalizedName = name.toLowerCase().replace(/\s/g, '');
     const isOpenBank = normalizedName.includes('openbank');
+    const isKubo = normalizedName.includes('kubo');
 
     setInstitutionForm((current) => ({
       ...current,
@@ -179,6 +180,15 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             dualThreshold: '30000',
             dualRate2: '7',
             category: 'banco' as const,
+          }
+        : {}),
+      ...(isKubo && !editingInstitutionId
+        ? {
+            rate: '10',
+            defaultBase: 360,
+            defaultFreq: 'vencimiento' as const,
+            hasDualTier: false,
+            category: 'sofipo' as const,
           }
         : {}),
     }));
