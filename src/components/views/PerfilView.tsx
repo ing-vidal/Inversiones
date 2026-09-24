@@ -338,16 +338,6 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
 
           <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-inner">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-[#dce9ff] bg-[#f6f9ff] p-2.5">
-                <div
-                  className="h-8 w-8 rounded-full border-2 border-white shadow-sm"
-                  style={{ background: institutionForm.color }}
-                />
-                <span className="font-hanken text-[11px] font-semibold text-[#0b1c30]">
-                  {institutionForm.name || 'Vista previa'}
-                </span>
-              </div>
-
               <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
                 Nombre
                 <input
@@ -460,17 +450,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-2">
-              <input
-                type="color"
-                value={institutionForm.color}
-                onChange={(e) => setInstitutionForm({ ...institutionForm, color: e.target.value })}
-                className="h-11 w-14 cursor-pointer rounded-lg border border-[#dfe8ff] bg-white p-1"
-                aria-label="Color de la institución"
-              />
               <button
                 type="button"
                 onClick={handleInstitutionSubmit}
-                className="flex-1 rounded-xl bg-[#006c49] px-4 py-2.5 font-hanken text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#005a3c]"
+                className="w-full rounded-xl bg-[#006c49] px-4 py-2.5 font-hanken text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#005a3c]"
               >
                 {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
               </button>
