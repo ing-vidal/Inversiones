@@ -41,7 +41,7 @@ export async function apiUpdateInstitution(
   id: string,
   institution: Partial<BankInstitution>
 ): Promise<BankInstitution> {
-  const res = await fetch(`${BASE_URL}/institutions/${id}`, {
+  const res = await fetch(`${BASE_URL}/institutions?id=${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(institution),
@@ -51,7 +51,7 @@ export async function apiUpdateInstitution(
 }
 
 export async function apiDeleteInstitution(id: string): Promise<boolean> {
-  const res = await fetch(`${BASE_URL}/institutions/${id}`, {
+  const res = await fetch(`${BASE_URL}/institutions?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('Error al eliminar institución');
