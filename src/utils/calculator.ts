@@ -112,6 +112,7 @@ export function calculateYield(params: {
   isSofipoExempt?: boolean;
   sofipoExemptionLimit?: number;
   roundDailyDown?: boolean;
+  showISRSeparately?: boolean;
 }): CalculationResult {
   const {
     monto,
@@ -126,6 +127,7 @@ export function calculateYield(params: {
     isSofipoExempt = false,
     sofipoExemptionLimit = SOFIPO_EXEMPTION_LIMIT,
     roundDailyDown = false,
+    showISRSeparately = false,
   } = params;
 
   if (monto <= 0) {
@@ -162,7 +164,7 @@ export function calculateYield(params: {
 
   // 2. ISR Withholding (calculated over capital base, official SAT rate)
   let isrDaily = 0;
-  if (deductISR && (!isSofipoExempt || monto > SOFIPO_EXEMPTION_LIMIT)) {
+  if ((deductISR || showISRSeparately) && (!isSofipoExempt || monto > SOFIPO_EXEMPTION_LIMIT)) {
     // If sofipo exempt and exceeds limit, only excess is subject to ISR
     const taxableCapital = isSofipoExempt ? Math.max(0, monto - sofipoExemptionLimit) : monto;
     isrDaily = (taxableCapital * satRate) / base;
@@ -224,7 +226,7 @@ export function calculateYield(params: {
     ? `Fórmula: (($${dualThreshold.toLocaleString('es-MX')} × ${tasaNominal}%) + ($${(monto - dualThreshold).toLocaleString('es-MX')} × ${dualRate2}%)) ÷ ${base}d`
     : `Fórmula: ($${monto.toLocaleString('es-MX')} × ${tasaNominal.toFixed(2)}% ÷ ${base}d)`;
 
-  const isrStr = deductISR
+  const isrStr = deductISR || showISRSeparately
     ? `ISR SAT: -$${isrDaily.toFixed(2)}/día`
     : 'Exento / Sin retención';
 

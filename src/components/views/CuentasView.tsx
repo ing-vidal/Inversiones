@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateTermProgress, calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateTermProgress, calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isMifelInstitution, isNuInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -85,7 +85,10 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     setBaseDivisor(inst.defaultBase);
     setFrecuencia(inst.defaultFreq);
     setIsDualTier(inst.hasDualTier);
-    setDeductISR(!isNuInstitution(inst.id, inst.name, inst.shortName));
+    setDeductISR(
+      !isNuInstitution(inst.id, inst.name, inst.shortName)
+      && !isMifelInstitution(inst.id, inst.name, inst.shortName),
+    );
     if (inst.hasDualTier && inst.dualThreshold) {
       setDualThreshold(inst.dualThreshold);
     }
@@ -110,6 +113,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     isSofipoExempt: settings.applySofipoExemption && selectedInst !== null && isSofipoInstitution(selectedInst.id),
     sofipoExemptionLimit: settings.umaValueAnnual,
     roundDailyDown: selectedInst !== null && isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName),
+    showISRSeparately: selectedInst !== null && isMifelInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName),
   });
   const hasValidTermDates = /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate)
     && Number(startDate.slice(0, 4)) >= 2000 && Number(endDate.slice(0, 4)) >= 2000;
@@ -190,6 +194,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(curr.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
       roundDailyDown: isDidiInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
+      showISRSeparately: isMifelInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
     });
     return acc + res.netDaily;
   }, 0);
@@ -857,6 +862,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(acc.institutionId),
               sofipoExemptionLimit: settings.umaValueAnnual,
               roundDailyDown: isDidiInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
+              showISRSeparately: isMifelInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
             });
 
             return (
@@ -1040,7 +1046,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     tasaNominal: institution.rate,
                     base: institution.defaultBase,
                     isCompound: true,
-                    deductISR: !isNuInstitution(institution.id, institution.name, institution.shortName),
+                    deductISR:
+                      !isNuInstitution(institution.id, institution.name, institution.shortName)
+                      && !isMifelInstitution(institution.id, institution.name, institution.shortName),
                     isDualTier: institution.hasDualTier,
                     dualThreshold: institution.dualThreshold,
                     dualRate2: institution.dualRate2,
@@ -1049,6 +1057,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     sofipoExemptionLimit: settings.umaValueAnnual,
                     roundDailyDown:
                       isDidiInstitution(institution.id, institution.name, institution.shortName),
+                    showISRSeparately: isMifelInstitution(institution.id, institution.name, institution.shortName),
                   });
 
                   return { institution, simRes };

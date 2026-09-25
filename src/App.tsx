@@ -70,7 +70,7 @@ const normalizeAccount = (account: BankAccount): BankAccount => {
     return normalized;
   }
 
-  return { ...normalized, deductISR: true };
+  return { ...normalized, deductISR: false };
 };
 
 const calculateAccountYield = (account: BankAccount, balance: number, settings: UserSettings) => calculateYield({
@@ -86,6 +86,7 @@ const calculateAccountYield = (account: BankAccount, balance: number, settings: 
   isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(account.institutionId),
   sofipoExemptionLimit: settings.umaValueAnnual,
   roundDailyDown: isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
+  showISRSeparately: isMifelInstitution(account.institutionId, account.institutionName, account.shortCode),
 });
 
 function MainApp() {
@@ -284,6 +285,7 @@ function MainApp() {
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
       roundDailyDown: isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
+      showISRSeparately: isMifelInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
     });
 
     const newRecord: DailyYieldRecord = {
