@@ -252,11 +252,13 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {filteredRecords.map((rec) => (
-              <div
-                key={rec.id}
-                className="bg-white p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center justify-between gap-3 transition-all hover:border-[#006c49]/40 hover:shadow-sm"
-              >
+            {filteredRecords.map((rec) => {
+              const isMifelRecord = rec.bankName.toLowerCase().includes('mifel');
+              return (
+                <div
+                  key={rec.id}
+                  className="bg-white p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center justify-between gap-3 transition-all hover:border-[#006c49]/40 hover:shadow-sm"
+                >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`w-10 h-10 rounded-full ${rec.badgeBg} ${rec.badgeText} flex items-center justify-center font-space text-[13px] font-bold shrink-0`}
@@ -274,18 +276,32 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
                 </div>
 
                 <div className="flex flex-col items-end shrink-0 pl-2">
-                  <span className="font-space text-[15px] sm:text-[16px] font-bold text-[#006c49] whitespace-nowrap">
-                    {formatMXN(rec.netYield, { showSign: true })}
-                  </span>
-                  <span className="font-hanken text-[10px] text-[#76777d] whitespace-nowrap">
-                    Bruto ${rec.grossYield.toFixed(2)} | SAT -${rec.isrWithheld.toFixed(2)}
-                  </span>
+                  {isMifelRecord ? (
+                    <>
+                      <span className="font-space text-[15px] sm:text-[16px] font-bold text-[#006c49] whitespace-nowrap">
+                        Intereses {formatMXN(rec.grossYield, { showSign: true })}
+                      </span>
+                      <span className="font-hanken text-[10px] text-[#b4534b] whitespace-nowrap">
+                        ISR retenido: -${rec.isrWithheld.toFixed(2)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-space text-[15px] sm:text-[16px] font-bold text-[#006c49] whitespace-nowrap">
+                        {formatMXN(rec.netYield, { showSign: true })}
+                      </span>
+                      <span className="font-hanken text-[10px] text-[#76777d] whitespace-nowrap">
+                        Bruto ${rec.grossYield.toFixed(2)} | SAT -${rec.isrWithheld.toFixed(2)}
+                      </span>
+                    </>
+                  )}
                   <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
                     Saldo actual: {formatMXN(rec.balanceAtTime)}
                   </span>
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
