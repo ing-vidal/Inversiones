@@ -494,7 +494,7 @@ export default function App() {
             )}
 
             {activeTab === 'historial' && (
-              <HistorialView records={history} institutions={institutions} />
+              <HistorialView records={history} accounts={accounts} institutions={institutions} />
             )}
 
             {activeTab === 'perfil' && (

@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
-import { DailyYieldRecord } from '../../types/finance';
+import { BankAccount, DailyYieldRecord } from '../../types/finance';
 import { formatMXN } from '../../utils/calculator';
 
 import { BankInstitution } from '../../types/finance';
 
 interface HistorialViewProps {
   records: DailyYieldRecord[];
+  accounts: BankAccount[];
   institutions?: BankInstitution[];
 }
 
-export const HistorialView: React.FC<HistorialViewProps> = ({ records, institutions = [] }) => {
+export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts, institutions = [] }) => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'month' | 'year' | 'all'>('all');
 
-  const filterOptions = [
+  const filterOptions: { id: string; label: string; accountId?: string }[] = [
     { id: 'all', label: 'Todos los bancos' },
-    ...institutions.map((inst) => ({
-      id: inst.id,
-      label: inst.name,
+    ...accounts.map((account) => ({
+      id: `account:${account.id}`,
+      label: `${account.institutionName} - ${account.paymentFrequency === 'vencimiento' ? 'Plazo fijo' : 'Diario'}`,
+      accountId: account.id,
     })),
   ];
 
-  const selectedInstitution = institutions.find((inst) => inst.id === selectedFilter);
+  const selectedFilterOption = filterOptions.find((option) => option.id === selectedFilter);
 
   const getRecordDate = (record: DailyYieldRecord) => {
     if (record.createdAt) return new Date(record.createdAt);
@@ -47,17 +49,7 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
   const filteredRecords = records.filter((record) => {
     const matchesInstitution = (() => {
       if (selectedFilter === 'all') return true;
-      if (!selectedInstitution) return false;
-
-      const matchesName =
-        record.bankName.toLowerCase() === selectedInstitution.name.toLowerCase() ||
-        record.bankName.toLowerCase().includes(selectedInstitution.name.toLowerCase()) ||
-        record.bankName.toLowerCase().includes(selectedInstitution.shortName.toLowerCase());
-
-      const matchesShortCode = record.shortCode.toLowerCase() === selectedInstitution.shortName.toLowerCase() ||
-        record.shortCode.toLowerCase() === selectedInstitution.name.toLowerCase().slice(0, 2).toLowerCase();
-
-      return matchesName || matchesShortCode;
+      return selectedFilterOption?.accountId === record.accountId;
     })();
 
     return matchesInstitution && isInSelectedPeriod(record);
@@ -104,7 +96,7 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, instituti
       : selectedPeriod === 'year'
       ? 'Año actual'
       : 'Desde el principio';
-    const bankLabel = selectedInstitution?.name ?? 'Todos los bancos';
+    const bankLabel = selectedFilterOption?.label ?? 'Todos los bancos';
     const escapeHtml = (value: string) => value
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
