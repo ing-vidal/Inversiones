@@ -1323,8 +1323,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
 
       {/* Account Configuration Modal */}
       {editingAccount && editPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-3xl max-h-[92vh] overflow-auto rounded-2xl p-5 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-auto rounded-2xl p-5 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-space font-semibold text-[18px] text-[#0b1c30]">Editar cuenta</h3>
