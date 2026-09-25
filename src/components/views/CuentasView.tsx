@@ -306,6 +306,10 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       nominalValue: isCetes ? nominalValue : undefined,
     };
 
+    if (!window.confirm(`¿Deseas guardar la cuenta "${finalNickname}" de ${selectedInst.name}?`)) {
+      return;
+    }
+
     onSaveAccount(newAccount);
     showToast(`${selectedInst.name} guardada e historial activado`);
     setTimeout(() => {
@@ -363,13 +367,15 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       )}
 
       {/* Segmented Sub-Tabs */}
-      <div className="bg-[#dce9ff]/60 p-1 rounded-xl flex items-center justify-between shadow-xs mb-6 max-w-md mx-auto w-full">
+      <div role="tablist" aria-label="Secciones de cuentas" className="bg-[#0b1218]/80 p-1 rounded-xl flex items-center justify-between shadow-xs mb-6 max-w-md mx-auto w-full border border-[#29435d]">
         <button
           onClick={() => setSubTab('cuentas')}
-          className={`flex-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
+          role="tab"
+          aria-selected={subTab === 'cuentas'}
+          className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'cuentas'
-              ? 'bg-white text-[#0b1c30] shadow-sm font-semibold'
-              : 'text-[#45464d] hover:text-[#0b1c30]'
+              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
+              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
           }`}
           type="button"
         >
@@ -377,10 +383,12 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
         </button>
         <button
           onClick={() => setSubTab('registrar')}
-          className={`flex-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
+          role="tab"
+          aria-selected={subTab === 'registrar'}
+          className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'registrar'
-              ? 'bg-white text-[#0b1c30] shadow-sm font-semibold'
-              : 'text-[#45464d] hover:text-[#0b1c30]'
+              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
+              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
           }`}
           type="button"
         >
@@ -388,10 +396,12 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
         </button>
         <button
           onClick={() => setSubTab('simulador')}
-          className={`flex-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
+          role="tab"
+          aria-selected={subTab === 'simulador'}
+          className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'simulador'
-              ? 'bg-white text-[#0b1c30] shadow-sm font-semibold'
-              : 'text-[#45464d] hover:text-[#0b1c30]'
+              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
+              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
           }`}
           type="button"
         >
@@ -938,7 +948,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
             <button
               type="button"
               onClick={handleGuardarCuenta}
-              className="w-full h-14 bg-[#0b1c30] text-white font-space text-[16px] font-semibold rounded-xl shadow-lg active:scale-98 hover:bg-[#131b2e] transition-all flex items-center justify-center gap-2"
+              className="w-full min-h-14 bg-[#6ffbbe] text-[#04131c] font-space text-[16px] font-bold rounded-xl shadow-lg active:scale-98 hover:bg-[#55e6a5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6ffbbe] transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-[20px]">save</span>
               <span>Guardar Cuenta y Activar Historial</span>
