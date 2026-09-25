@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BankAccount, BankInstitution, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateTermProgress, calculateYield, formatMXN, isCetesInstitution } from '../../utils/calculator';
+import { BankAccount, BankInstitution, CalculationMethod, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
+import { calculateCetesProjection, calculateTermProgress, calculateYield, formatMXN } from '../../utils/calculator';
 import { IsrMode, UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -15,6 +15,19 @@ interface CuentasViewProps {
   onOpenProfile?: () => void;
   initialSubTab?: 'cuentas' | 'registrar' | 'simulador';
 }
+
+const toDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysToDateInput = (dateValue: string, days: number) => {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return toDateInputValue(date);
+};
 
 export const CuentasView: React.FC<CuentasViewProps> = ({
   accounts,
@@ -41,30 +54,30 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     }
 
     setSelectedInst((prev) => {
-      if (prev && institutions.some((inst) => inst.id === prev.id)) {
-        return prev;
-      }
-      return activeInstitution;
+      return institutions.find((inst) => inst.id === prev?.id) ?? activeInstitution;
     });
   }, [institutions, activeInstitution]);
 
   const [accountNickname, setAccountNickname] = useState('');
   const [monto, setMonto] = useState<number>(50000);
-  const [tasa, setTasa] = useState<number>(14.25);
+  const [tasa, setTasa] = useState<number>(activeInstitution?.rate ?? 0);
   const [isTasaFija, setIsTasaFija] = useState<boolean>(true);
-  const [baseDivisor, setBaseDivisor] = useState<DivisorBase>(365);
-  const [frecuencia, setFrecuencia] = useState<PaymentFrequency>('diario');
-  const [isCompound, setIsCompound] = useState<boolean>(true);
-  const [deductISR, setDeductISR] = useState<boolean>(true);
-  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [rateExpiryDate, setRateExpiryDate] = useState('');
+  const [baseDivisor, setBaseDivisor] = useState<DivisorBase>(activeInstitution?.defaultBase ?? 365);
+  const [frecuencia, setFrecuencia] = useState<PaymentFrequency>(activeInstitution?.defaultFreq ?? 'diario');
+  const [isCompound, setIsCompound] = useState<boolean>(activeInstitution?.defaultIsCompound ?? true);
+  const [isrMode, setIsrMode] = useState<IsrMode>(activeInstitution?.isrMode ?? 'deduct');
+  const [startDate, setStartDate] = useState<string>(() => toDateInputValue(new Date()));
+  const [endDate, setEndDate] = useState<string>(() => activeInstitution?.defaultFreq === 'vencimiento'
+    ? addDaysToDateInput(toDateInputValue(new Date()), activeInstitution.defaultTermDays ?? 28)
+    : toDateInputValue(new Date()));
   const [titleCount, setTitleCount] = useState<number>(0);
-  const [nominalValue, setNominalValue] = useState<number>(10);
+  const [nominalValue, setNominalValue] = useState<number>(activeInstitution?.defaultNominalValue ?? 10);
 
   // Dual-tier specifics (for DiDi / customized accounts)
-  const [isDualTier, setIsDualTier] = useState<boolean>(false);
-  const [dualThreshold, setDualThreshold] = useState<number>(10000);
-  const [dualRate2, setDualRate2] = useState<number>(7.0);
+  const [isDualTier, setIsDualTier] = useState<boolean>(activeInstitution?.hasDualTier ?? false);
+  const [dualThreshold, setDualThreshold] = useState<number>(activeInstitution?.dualThreshold ?? 0);
+  const [dualRate2, setDualRate2] = useState<number>(activeInstitution?.dualRate2 ?? 0);
 
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -96,31 +109,94 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       isCompound: Boolean(editForm.isCompound ?? editingAccount.isCompound),
       deductISR: editForm.isrMode === 'deduct' || (!editForm.isrMode && editingAccount.deductISR),
       isDualTier: Boolean(editForm.isDualTier ?? editingAccount.isDualTier),
-      dualThreshold: Number(editForm.dualThreshold ?? editingAccount.dualThreshold ?? 10000),
-      dualRate2: Number(editForm.dualRate2 ?? editingAccount.dualRate2 ?? 7),
+      dualThreshold: Number(editForm.dualThreshold ?? editingAccount.dualThreshold ?? 0),
+      dualRate2: Number(editForm.dualRate2 ?? editingAccount.dualRate2 ?? 0),
       isrRate: Number(editForm.isrRate ?? editingAccount.isrRate ?? settings.satIsrRate),
       isrMode: editForm.isrMode ?? editingAccount.isrMode,
       isSofipoExempt: settings.applySofipoExemption && editForm.isrExempt === true,
       roundingMode: editForm.roundingMode ?? editingAccount.roundingMode,
+      projectionMonthDays: settings.projectionMonthDays,
+      projectionYearDays: settings.projectionYearDays,
     })
     : null;
+
+  const editTermPreview = editingAccount
+    ? calculateTermProgress({
+      balance: Number(editForm.balance ?? editingAccount.balance),
+      nominalRate: Number(editForm.nominalRate ?? editingAccount.nominalRate),
+      base: (editForm.baseDivisor ?? editingAccount.baseDivisor) as DivisorBase,
+      startDate: editForm.startDate ?? editingAccount.startDate,
+      endDate: editForm.endDate ?? editingAccount.endDate,
+      calculationMethod: editForm.calculationMethod ?? editingAccount.calculationMethod,
+      titleCount: Number(editForm.titleCount ?? editingAccount.titleCount ?? 0),
+      nominalValue: Number(editForm.nominalValue ?? editingAccount.nominalValue ?? 0),
+      isCompound: Boolean(editForm.isCompound ?? editingAccount.isCompound),
+      deductISR: editForm.isrMode === 'deduct' || (!editForm.isrMode && editingAccount.deductISR),
+      isDualTier: Boolean(editForm.isDualTier ?? editingAccount.isDualTier),
+      dualThreshold: Number(editForm.dualThreshold ?? editingAccount.dualThreshold ?? 0),
+      dualRate2: Number(editForm.dualRate2 ?? editingAccount.dualRate2 ?? 0),
+      isrRate: Number(editForm.isrRate ?? editingAccount.isrRate ?? settings.satIsrRate),
+      isrMode: editForm.isrMode ?? editingAccount.isrMode,
+      isSofipoExempt: settings.applySofipoExemption && editForm.isrExempt === true,
+      sofipoExemptionLimit: settings.umaValueAnnual,
+      roundingMode: editForm.roundingMode ?? editingAccount.roundingMode,
+    })
+    : null;
+
+  const handleSaveAccountEdit = () => {
+    if (!editingAccount) return;
+    const calculationMethod = editForm.calculationMethod ?? editingAccount.calculationMethod ?? 'annual-nominal';
+    if (calculationMethod === 'cetes-titles' && (
+      Number(editForm.titleCount ?? editingAccount.titleCount ?? 0) <= 0
+      || Number(editForm.nominalValue ?? editingAccount.nominalValue ?? 0) <= 0
+    )) {
+      showToast('Captura la cantidad y el valor nominal de los títulos.');
+      return;
+    }
+    if (editForm.rateType === 'promo' && !editForm.rateExpiryDate) {
+      showToast('Indica cuándo termina la tasa promocional.');
+      return;
+    }
+    if (editForm.isDualTier && Number(editForm.dualThreshold ?? 0) <= 0) {
+      showToast('El límite del primer tramo debe ser mayor que cero.');
+      return;
+    }
+    if (editForm.paymentFrequency === 'vencimiento'
+      && (!editForm.startDate || !editForm.endDate || editForm.endDate <= editForm.startDate)) {
+      showToast('El vencimiento debe ser posterior a la fecha de inicio.');
+      return;
+    }
+
+    onUpdateAccount(editingAccount.id, {
+      ...editForm,
+      calculationMethod,
+      deductISR: editForm.isrMode === 'deduct',
+    });
+    setEditingAccount(null);
+    showToast('Cuenta actualizada');
+  };
 
   const handleSelectBank = (inst: BankInstitution) => {
     setSelectedInst(inst);
     setTasa(inst.rate);
     setBaseDivisor(inst.defaultBase);
     setFrecuencia(inst.defaultFreq);
+    setIsCompound(inst.defaultIsCompound ?? true);
+    setNominalValue(inst.defaultNominalValue ?? 10);
+    setRateExpiryDate('');
+    const today = toDateInputValue(new Date());
+    setStartDate(today);
+    setEndDate(inst.defaultFreq === 'vencimiento'
+      ? addDaysToDateInput(today, inst.defaultTermDays ?? 28)
+      : today);
     setIsDualTier(inst.hasDualTier);
-    setDeductISR(inst.isrMode === 'deduct');
-    if (inst.hasDualTier && inst.dualThreshold) {
-      setDualThreshold(inst.dualThreshold);
-    }
-    if (inst.hasDualTier && inst.dualRate2 !== undefined) {
-      setDualRate2(inst.dualRate2);
-    }
+    setDualThreshold(inst.dualThreshold ?? 0);
+    setDualRate2(inst.dualRate2 ?? 0);
+    setIsrMode(inst.isrMode ?? 'deduct');
   };
 
-  const selectedIsrMode: IsrMode = deductISR ? 'deduct' : selectedInst?.isrMode ?? 'none';
+  const deductISR = isrMode === 'deduct';
+  const selectedIsrMode = isrMode;
 
   // Live calculation
   const liveResult = calculateYield({
@@ -137,17 +213,39 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     isSofipoExempt: settings.applySofipoExemption && selectedInst?.isrExempt === true,
     sofipoExemptionLimit: settings.umaValueAnnual,
     roundingMode: selectedInst?.roundingMode,
+    projectionMonthDays: settings.projectionMonthDays,
+    projectionYearDays: settings.projectionYearDays,
   });
   const hasValidTermDates = /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate)
     && Number(startDate.slice(0, 4)) >= 2000 && Number(endDate.slice(0, 4)) >= 2000;
-  const termDays = frecuencia === 'vencimiento' && hasValidTermDates
-    ? Math.max(1, Math.round((new Date(`${endDate}T00:00:00`).getTime() - new Date(`${startDate}T00:00:00`).getTime()) / (24 * 60 * 60 * 1000)))
-    : 0;
-  const termInterest = termDays > 0 ? liveResult.netDaily * termDays : 0;
-  const termAmount = monto + termInterest;
-  const isCetes = selectedInst !== null && isCetesInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName);
-  const cetesMaturityAmount = isCetes && titleCount > 0 ? titleCount * nominalValue : termAmount;
-  const cetesInterest = cetesMaturityAmount - monto;
+  const calculationMethod: CalculationMethod = selectedInst?.calculationMethod
+    ?? (selectedInst?.category === 'cetes' ? 'cetes-titles' : 'annual-nominal');
+  const termProgressPreview = calculateTermProgress({
+    balance: monto,
+    nominalRate: tasa,
+    base: baseDivisor,
+    startDate: hasValidTermDates ? startDate : undefined,
+    endDate: hasValidTermDates ? endDate : undefined,
+    calculationMethod,
+    titleCount,
+    nominalValue,
+    isCompound,
+    deductISR,
+    isDualTier,
+    dualThreshold,
+    dualRate2,
+    isrRate: selectedInst?.isrRate ?? settings.satIsrRate,
+    isrMode: selectedIsrMode,
+    isSofipoExempt: settings.applySofipoExemption && selectedInst?.isrExempt === true,
+    sofipoExemptionLimit: settings.umaValueAnnual,
+    roundingMode: selectedInst?.roundingMode,
+  });
+  const termDays = frecuencia === 'vencimiento' ? termProgressPreview.totalDays : 0;
+  const termInterest = termProgressPreview.totalInterest;
+  const termAmount = termProgressPreview.maturityAmount;
+  const isCetes = calculationMethod === 'cetes-titles';
+  const cetesMaturityAmount = termAmount;
+  const cetesInterest = termInterest;
 
   const handleGuardarCuenta = () => {
     if (!selectedInst) {
@@ -156,12 +254,20 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
     }
 
     const finalNickname = accountNickname.trim() || `${selectedInst.name} Cajita`;
-    if (frecuencia === 'vencimiento' && endDate < startDate) {
-      showToast('La fecha final debe ser posterior o igual a la fecha inicial');
+    if (frecuencia === 'vencimiento' && endDate <= startDate) {
+      showToast('La fecha final debe ser posterior a la fecha inicial');
       return;
     }
     if (frecuencia === 'vencimiento' && !hasValidTermDates) {
       showToast('Captura fechas válidas con año de cuatro dígitos');
+      return;
+    }
+    if (!isTasaFija && !rateExpiryDate) {
+      showToast('Indica cuándo termina la tasa promocional');
+      return;
+    }
+    if (isDualTier && dualThreshold <= 0) {
+      showToast('El límite del primer tramo debe ser mayor que cero');
       return;
     }
     if (isCetes && titleCount <= 0) {
@@ -176,6 +282,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       balance: monto,
       nominalRate: tasa,
       rateType: isDualTier ? 'escalonada' : isTasaFija ? 'fija' : 'promo',
+      rateExpiryDate: !isTasaFija ? rateExpiryDate : undefined,
+      calculationMethod,
       baseDivisor,
       paymentFrequency: frecuencia,
       isCompound,
@@ -222,6 +330,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       isSofipoExempt: settings.applySofipoExemption && curr.isrExempt === true,
       sofipoExemptionLimit: settings.umaValueAnnual,
       roundingMode: curr.roundingMode,
+      projectionMonthDays: settings.projectionMonthDays,
+      projectionYearDays: settings.projectionYearDays,
     });
     return acc + res.netDaily;
   }, 0);
@@ -451,7 +561,11 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                       {isTasaFija ? 'Fija Ordinaria' : 'Promocional'}
                     </span>
                     <span className="font-hanken text-[11px] text-[#45464d] truncate">
-                      {isTasaFija ? 'Sin vencimiento' : 'Corte 90 días'}
+                      {isTasaFija
+                        ? 'Sin vencimiento'
+                        : rateExpiryDate
+                        ? new Date(`${rateExpiryDate}T00:00:00`).toLocaleDateString('es-MX')
+                        : 'Indica la fecha de término'}
                     </span>
                   </div>
                   <span className="material-symbols-outlined text-[18px] text-[#006c49] shrink-0">
@@ -460,6 +574,19 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 </button>
               </div>
             </div>
+
+            {!isTasaFija && (
+              <label className="flex flex-col gap-1 pt-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
+                La tasa promocional termina el
+                <input
+                  type="date"
+                  min={toDateInputValue(new Date())}
+                  value={rateExpiryDate}
+                  onChange={(e) => setRateExpiryDate(e.target.value)}
+                  className="w-full rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold normal-case text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
+                />
+              </label>
+            )}
 
             {/* Optional Nickname */}
             <div className="flex flex-col gap-1 pt-1 border-t border-[#e2e8f0]/40">
@@ -505,20 +632,32 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
 
               {isDualTier ? (
                 <>
-                  <div className="flex justify-between items-center text-[13px] font-hanken text-[#0b1c30] mt-1">
-                    <span>Tramo 1 (hasta ${dualThreshold.toLocaleString('es-MX')} MXN):</span>
-                    <span className="font-space text-[18px] font-bold text-[#006c49]">
-                      {tasa.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[13px] font-hanken text-[#0b1c30]">
-                    <span>Tramo 2 (excedente):</span>
-                    <span className="font-space text-[18px] font-bold text-[#45464d]">
-                      {dualRate2.toFixed(2)}%
-                    </span>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <label className="flex flex-col gap-1 font-hanken text-[10px] font-bold text-[#45464d] uppercase">
+                      Tramo 1 hasta (MXN)
+                      <input
+                        type="number"
+                        min="1"
+                        step="100"
+                        value={dualThreshold || ''}
+                        onChange={(e) => setDualThreshold(Number(e.target.value) || 0)}
+                        className="rounded-lg border border-[#dce9ff] bg-[#eff4ff] px-2.5 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:border-[#006c49]"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 font-hanken text-[10px] font-bold text-[#45464d] uppercase">
+                      Tasa excedente (%)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={dualRate2 || ''}
+                        onChange={(e) => setDualRate2(Number(e.target.value) || 0)}
+                        className="rounded-lg border border-[#dce9ff] bg-[#eff4ff] px-2.5 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:border-[#006c49]"
+                      />
+                    </label>
                   </div>
                   <p className="font-hanken text-[11px] text-[#45464d] mt-1">
-                    La fórmula calculará cada tramo automáticamente con corte diario.
+                    Valores heredados de {selectedInst?.name ?? 'la institución'}. Los cambios solo aplican a esta cuenta.
                   </p>
                 </>
               ) : (
@@ -639,7 +778,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   Fecha final
                   <input
                     type="date"
-                    min={startDate > '2000-01-01' ? startDate : '2000-01-01'}
+                    min={addDaysToDateInput(startDate, 1)}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="rounded-lg bg-[#eff4ff] px-3 py-2 font-space text-[13px] font-semibold text-[#0b1c30] outline-none focus:bg-[#e5eeff]"
@@ -707,22 +846,25 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                       Descontar Retención ISR
                     </span>
                     <span className="bg-[#dce9ff] px-2 py-0.5 rounded-full font-hanken text-[10px] text-[#0b1c30] font-bold">
-                      SAT 2026: 0.50%
+                      {selectedInst?.name ?? 'ISR'}: {((selectedInst?.isrRate ?? settings.satIsrRate) * 100).toFixed(2)}%
                     </span>
                   </div>
                   <span className="font-hanken text-[12px] text-[#45464d]">
                     Cálculo neto después de retención obligatoria sobre capital
                   </span>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={deductISR}
-                    onChange={(e) => setDeductISR(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006c49]"></div>
-                </label>
+                <div className="shrink-0">
+                  <select
+                    value={isrMode}
+                    onChange={(e) => setIsrMode(e.target.value as IsrMode)}
+                    aria-label="Tratamiento del ISR para esta cuenta"
+                    className="max-w-40 rounded-lg border border-[#dce9ff] bg-[#eff4ff] px-2 py-2 font-hanken text-[11px] font-semibold text-[#0b1c30] outline-none focus:border-[#006c49]"
+                  >
+                    <option value="none">Sin retención</option>
+                    <option value="deduct">Descontar ISR</option>
+                    <option value="separate">Mostrar ISR aparte</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -768,7 +910,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
             <div className="grid grid-cols-2 gap-4 pt-3.5 mt-3.5 border-t border-white/10 relative z-10">
               <div className="flex flex-col">
                 <span className="font-hanken text-[12px] text-[#7c839b]">
-                  {frecuencia === 'vencimiento' ? 'Plazo contratado' : 'En 30 días (1 mes)'}
+                  {frecuencia === 'vencimiento' ? 'Plazo contratado' : `En ${settings.projectionMonthDays} días`}
                 </span>
                 <span className="font-space text-[22px] font-bold text-white">
                   {frecuencia === 'vencimiento' ? `${termDays} días` : formatMXN(liveResult.netMonthly, { showSign: true })}
@@ -776,7 +918,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               </div>
               <div className="flex flex-col">
                 <span className="font-hanken text-[12px] text-[#7c839b]">
-                  {frecuencia === 'vencimiento' ? 'Monto a recibir' : 'En 365 días (Compuesto)'}
+                  {frecuencia === 'vencimiento' ? 'Monto a recibir' : `En ${settings.projectionYearDays} días`}
                 </span>
                 <span className="font-space text-[22px] font-bold text-[#6ffbbe]">
                   {frecuencia === 'vencimiento' ? formatMXN(isCetes ? cetesMaturityAmount : termAmount) : formatMXN(liveResult.netYearly, { showSign: true })}
@@ -867,6 +1009,19 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   base: acc.baseDivisor,
                   startDate: acc.startDate,
                   endDate: acc.endDate,
+                  calculationMethod: acc.calculationMethod,
+                  titleCount: acc.titleCount,
+                  nominalValue: acc.nominalValue,
+                  isCompound: acc.isCompound,
+                  deductISR: acc.isrMode ? acc.isrMode === 'deduct' : acc.deductISR,
+                  isDualTier: acc.isDualTier,
+                  dualThreshold: acc.dualThreshold,
+                  dualRate2: acc.dualRate2,
+                  isrRate: acc.isrRate ?? settings.satIsrRate,
+                  isrMode: acc.isrMode,
+                  isSofipoExempt: settings.applySofipoExemption && acc.isrExempt === true,
+                  sofipoExemptionLimit: settings.umaValueAnnual,
+                  roundingMode: acc.roundingMode,
                 })
                 : undefined;
               const maturityDate = acc.endDate
@@ -890,6 +1045,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               isSofipoExempt: settings.applySofipoExemption && acc.isrExempt === true,
               sofipoExemptionLimit: settings.umaValueAnnual,
               roundingMode: acc.roundingMode,
+              projectionMonthDays: settings.projectionMonthDays,
+              projectionYearDays: settings.projectionYearDays,
             });
 
             return (
@@ -1042,8 +1199,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               Comparador de Rendimientos en México
             </span>
             <p className="font-hanken text-[13px] text-[#45464d]">
-              Calcula dónde te conviene colocar tu dinero a 1 año considerando fórmulas
-              reales y retención SAT:
+              Compara el rendimiento neto en {settings.projectionYearDays} días considerando las reglas de cada institución.
             </p>
 
             {/* Interactive Amount Slider */}
@@ -1076,26 +1232,48 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
             <div className="flex flex-col gap-2 mt-2">
               {institutions
                 .map((institution) => {
-                  const simRes = calculateYield({
-                    monto,
-                    tasaNominal: institution.rate,
-                    base: institution.defaultBase,
-                    isCompound: true,
-                    deductISR: institution.isrMode === 'deduct',
-                    isDualTier: institution.hasDualTier,
-                    dualThreshold: institution.dualThreshold,
-                    dualRate2: institution.dualRate2,
-                    isrRate: institution.isrRate ?? settings.satIsrRate,
-                    isrMode: institution.isrMode,
-                    isSofipoExempt: settings.applySofipoExemption && institution.isrExempt === true,
-                    sofipoExemptionLimit: settings.umaValueAnnual,
-                    roundingMode: institution.roundingMode,
-                  });
+                  const calculationMethod = institution.calculationMethod
+                    ?? (institution.category === 'cetes' ? 'cetes-titles' : 'annual-nominal');
+                  const isCetesMethod = calculationMethod === 'cetes-titles';
+                  const isrRate = institution.isrRate ?? settings.satIsrRate;
+                  const isSofipoExempt = settings.applySofipoExemption && institution.isrExempt === true;
+                  const simNetYield = isCetesMethod
+                    ? calculateCetesProjection({
+                      principal: monto,
+                      nominalRate: institution.rate,
+                      base: institution.defaultBase,
+                      productTermDays: institution.defaultTermDays ?? settings.projectionYearDays,
+                      projectionDays: settings.projectionYearDays,
+                      nominalValue: institution.defaultNominalValue ?? 10,
+                      isCompound: institution.defaultIsCompound ?? true,
+                      isrRate,
+                      isrMode: institution.isrMode ?? 'none',
+                      isSofipoExempt,
+                      sofipoExemptionLimit: settings.umaValueAnnual,
+                      roundingMode: institution.roundingMode,
+                    }).netYield
+                    : calculateYield({
+                      monto,
+                      tasaNominal: institution.rate,
+                      base: institution.defaultBase,
+                      isCompound: institution.defaultIsCompound ?? true,
+                      deductISR: institution.isrMode === 'deduct',
+                      isDualTier: institution.hasDualTier,
+                      dualThreshold: institution.dualThreshold,
+                      dualRate2: institution.dualRate2,
+                      isrRate,
+                      isrMode: institution.isrMode,
+                      isSofipoExempt,
+                      sofipoExemptionLimit: settings.umaValueAnnual,
+                      roundingMode: institution.roundingMode,
+                      projectionMonthDays: settings.projectionMonthDays,
+                      projectionYearDays: settings.projectionYearDays,
+                    }).netYearly;
 
-                  return { institution, simRes };
+                  return { institution, simNetYield, isCetesMethod };
                 })
-                .sort((a, b) => b.simRes.netYearly - a.simRes.netYearly)
-                .map(({ institution, simRes }, index) => {
+                .sort((a, b) => b.simNetYield - a.simNetYield)
+                .map(({ institution, simNetYield, isCetesMethod }, index) => {
                   const rateLabel = institution.hasDualTier
                     ? `${institution.rate}% + ${institution.dualRate2 ?? 0}%`
                     : `${institution.rate}%`;
@@ -1122,10 +1300,12 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     </div>
                     <div className="flex flex-col text-right">
                       <span className="font-space text-[16px] font-bold text-[#006c49]">
-                        {formatMXN(simRes.netYearly, { showSign: true })}
+                        {formatMXN(simNetYield, { showSign: true })}
                       </span>
                       <span className="font-hanken text-[10px] text-[#76777d]">
-                        al año neto
+                        {isCetesMethod
+                          ? `en ${settings.projectionYearDays} días, reinvirtiendo cada ${institution.defaultTermDays ?? settings.projectionYearDays} días`
+                          : `en ${settings.projectionYearDays} días netos`}
                       </span>
                     </div>
                   </div>
@@ -1170,6 +1350,58 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                    Vigencia
+                    <select value={editForm.rateType ?? 'fija'} onChange={(e) => setEditForm({ ...editForm, rateType: e.target.value as BankAccount['rateType'] })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]">
+                      <option value="fija">Fija</option><option value="promo">Promocional</option><option value="escalonada">Escalonada</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                    Método
+                    <select value={editForm.calculationMethod ?? 'annual-nominal'} onChange={(e) => {
+                      const method = e.target.value as CalculationMethod;
+                      setEditForm({
+                        ...editForm,
+                        calculationMethod: method,
+                        paymentFrequency: method === 'cetes-titles' ? 'vencimiento' : editForm.paymentFrequency,
+                      });
+                    }} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]">
+                      <option value="annual-nominal">Tasa sobre saldo</option><option value="cetes-titles">Títulos al vencimiento</option>
+                    </select>
+                  </label>
+                </div>
+                {editForm.rateType === 'promo' && (
+                  <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                    Fin de promoción
+                    <input type="date" value={editForm.rateExpiryDate ?? ''} onChange={(e) => setEditForm({ ...editForm, rateExpiryDate: e.target.value })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-xs font-normal normal-case text-[#0b1c30]" />
+                  </label>
+                )}
+                <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                  Frecuencia de abono
+                  <select value={editForm.paymentFrequency ?? 'diario'} onChange={(e) => setEditForm({ ...editForm, paymentFrequency: e.target.value as PaymentFrequency })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]">
+                    <option value="diario">Diario</option><option value="semanal">Semanal</option><option value="vencimiento">Al vencimiento</option>
+                  </select>
+                </label>
+                {editForm.paymentFrequency === 'vencimiento' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Inicio<input type="date" value={editForm.startDate ?? ''} onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Vencimiento<input type="date" min={String(editForm.startDate ?? '')} value={editForm.endDate ?? ''} onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                  </div>
+                )}
+                {editForm.calculationMethod === 'cetes-titles' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Títulos<input type="number" min="1" step="1" value={Number(editForm.titleCount ?? 0)} onChange={(e) => setEditForm({ ...editForm, titleCount: Number(e.target.value) })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Nominal por título<input type="number" min="0.01" step="0.01" value={Number(editForm.nominalValue ?? 0)} onChange={(e) => setEditForm({ ...editForm, nominalValue: Number(e.target.value) })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 font-hanken text-xs text-[#0b1c30]"><input type="checkbox" checked={Boolean(editForm.isDualTier)} onChange={(e) => setEditForm({ ...editForm, isDualTier: e.target.checked, rateType: e.target.checked ? 'escalonada' : 'fija' })} className="accent-[#006c49]" /> Tasa por tramos</label>
+                {editForm.isDualTier && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Límite tramo 1<input type="number" min="1" value={Number(editForm.dualThreshold ?? 0)} onChange={(e) => setEditForm({ ...editForm, dualThreshold: Number(e.target.value) })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                    <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">Tasa excedente %<input type="number" min="0" step="0.01" value={Number(editForm.dualRate2 ?? 0)} onChange={(e) => setEditForm({ ...editForm, dualRate2: Number(e.target.value) })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]" /></label>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
                     Base
                     <select value={editForm.baseDivisor} onChange={(e) => setEditForm({ ...editForm, baseDivisor: Number(e.target.value) as DivisorBase })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]"><option value={360}>360 días</option><option value={365}>365 días</option></select>
                   </label>
@@ -1178,25 +1410,43 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     <select value={editForm.isrMode ?? 'none'} onChange={(e) => setEditForm({ ...editForm, isrMode: e.target.value as IsrMode })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]"><option value="none">No aplicar</option><option value="deduct">Descontar</option><option value="separate">Mostrar aparte</option></select>
                   </label>
                 </div>
+                <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                  ISR anual %
+                  <input type="number" min="0" step="0.01" value={Number(editForm.isrRate ?? settings.satIsrRate) * 100} onChange={(e) => setEditForm({ ...editForm, isrRate: Number(e.target.value) / 100 })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-xs font-normal normal-case text-[#0b1c30]" />
+                </label>
+                <label className="flex flex-col gap-1 font-hanken text-[11px] font-bold text-[#45464d] uppercase">
+                  Redondeo
+                  <select value={editForm.roundingMode ?? 'normal'} onChange={(e) => setEditForm({ ...editForm, roundingMode: e.target.value as BankAccount['roundingMode'] })} className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-2 py-2 text-xs font-normal normal-case text-[#0b1c30]"><option value="normal">Normal</option><option value="truncate-total">Truncar total</option><option value="truncate-tier">Truncar por tramo</option></select>
+                </label>
                 <label className="flex items-center gap-2 font-hanken text-xs text-[#0b1c30]"><input type="checkbox" checked={Boolean(editForm.isCompound)} onChange={(e) => setEditForm({ ...editForm, isCompound: e.target.checked })} className="accent-[#006c49]" /> Interés compuesto</label>
                 <label className="flex items-center gap-2 font-hanken text-xs text-[#0b1c30]"><input type="checkbox" checked={Boolean(editForm.isrExempt)} onChange={(e) => setEditForm({ ...editForm, isrExempt: e.target.checked })} className="accent-[#006c49]" /> Exento hasta límite SOFIPO</label>
               </div>
               <div className="rounded-xl bg-gradient-to-br from-[#131b2e] to-[#0b1c30] p-4 text-white flex flex-col justify-between">
                 <div>
                   <div className="font-hanken text-[11px] uppercase tracking-wider font-bold text-[#6ffbbe]">Preview en tiempo real</div>
-                  <div className="font-hanken text-xs text-[#9aa5bd] mt-4">Ganancia estimada por día</div>
-                  <div className="font-space text-3xl font-bold text-[#6ffbbe]">{formatMXN(editPreview.netDaily, { showSign: true })}</div>
-                  <div className="grid grid-cols-2 gap-3 mt-5 border-t border-white/10 pt-3">
-                    <div><div className="font-hanken text-[11px] text-[#9aa5bd]">Bruto</div><div className="font-space text-lg font-bold">{formatMXN(editPreview.grossDaily)}</div></div>
-                    <div><div className="font-hanken text-[11px] text-[#9aa5bd]">ISR</div><div className="font-space text-lg font-bold text-[#6ffbbe]">{formatMXN(editPreview.isrDaily)}</div></div>
-                  </div>
+                  {editForm.calculationMethod === 'cetes-titles' ? (
+                    <>
+                      <div className="font-hanken text-xs text-[#9aa5bd] mt-4">Ganancia estimada al vencimiento</div>
+                      <div className="font-space text-3xl font-bold text-[#6ffbbe]">{formatMXN(editTermPreview?.totalInterest ?? 0, { showSign: true })}</div>
+                      <div className="font-hanken text-[11px] text-[#9aa5bd] mt-5">Monto estimado: {formatMXN(editTermPreview?.maturityAmount ?? 0)}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-hanken text-xs text-[#9aa5bd] mt-4">Ganancia estimada por día</div>
+                      <div className="font-space text-3xl font-bold text-[#6ffbbe]">{formatMXN(editPreview.netDaily, { showSign: true })}</div>
+                      <div className="grid grid-cols-2 gap-3 mt-5 border-t border-white/10 pt-3">
+                        <div><div className="font-hanken text-[11px] text-[#9aa5bd]">Bruto</div><div className="font-space text-lg font-bold">{formatMXN(editPreview.grossDaily)}</div></div>
+                        <div><div className="font-hanken text-[11px] text-[#9aa5bd]">ISR</div><div className="font-space text-lg font-bold text-[#6ffbbe]">{formatMXN(editPreview.isrDaily)}</div></div>
+                      </div>
+                      <div className="font-hanken text-[11px] text-[#9aa5bd] mt-5">{settings.projectionMonthDays} días: {formatMXN(editPreview.netMonthly, { showSign: true })} · {settings.projectionYearDays} días: {formatMXN(editPreview.netYearly, { showSign: true })}</div>
+                    </>
+                  )}
                 </div>
-                <div className="font-hanken text-[11px] text-[#9aa5bd] mt-5">30 días: {formatMXN(editPreview.netMonthly, { showSign: true })} · 365 días: {formatMXN(editPreview.netYearly, { showSign: true })}</div>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-5">
               <button type="button" onClick={() => setEditingAccount(null)} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#45464d] bg-[#eff4ff]">Cancelar</button>
-              <button type="button" onClick={() => { onUpdateAccount(editingAccount.id, { ...editForm, deductISR: editForm.isrMode === 'deduct' }); setEditingAccount(null); showToast('Cuenta actualizada'); }} className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#006c49]">Guardar cambios</button>
+              <button type="button" onClick={handleSaveAccountEdit} className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#006c49]">Guardar cambios</button>
             </div>
           </div>
         </div>

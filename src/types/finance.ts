@@ -2,6 +2,7 @@ export type DivisorBase = 360 | 365;
 export type PaymentFrequency = 'diario' | 'semanal' | 'vencimiento';
 export type IsrMode = 'none' | 'deduct' | 'separate';
 export type RoundingMode = 'normal' | 'truncate-total' | 'truncate-tier';
+export type CalculationMethod = 'annual-nominal' | 'cetes-titles';
 
 export interface BankInstitution {
   id: string;
@@ -13,6 +14,10 @@ export interface BankInstitution {
   hasDualTier: boolean;
   dualThreshold?: number; // e.g. 10000
   dualRate2?: number; // e.g. 7.0
+  defaultIsCompound?: boolean;
+  calculationMethod?: CalculationMethod;
+  defaultNominalValue?: number;
+  defaultTermDays?: number;
   isrRate?: number;
   isrMode?: IsrMode;
   isrExempt?: boolean;
@@ -32,6 +37,7 @@ export interface BankAccount {
   accountNickname: string;
   balance: number;
   nominalRate: number;
+  calculationMethod?: CalculationMethod;
   rateType: 'fija' | 'promo' | 'escalonada';
   rateExpiryDate?: string;
   baseDivisor: DivisorBase;
@@ -78,4 +84,6 @@ export interface UserSettings {
   applySofipoExemption: boolean; // 5 UMAs anuales
   umaValueAnnual: number; // 5 UMAs = ~206,000 MXN
   expectedInflation: number; // 4.5%
+  projectionMonthDays: number;
+  projectionYearDays: number;
 }

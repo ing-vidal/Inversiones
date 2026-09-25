@@ -13,7 +13,14 @@ import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
 import { AdminView } from './components/views/AdminView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield } from './utils/calculator';
+import {
+  SAT_ISR_DEFAULT,
+  SOFIPO_EXEMPTION_LIMIT,
+  INFLATION_ESTIMATE,
+  DEFAULT_PROJECTION_MONTH_DAYS,
+  DEFAULT_PROJECTION_YEAR_DAYS,
+  calculateYield,
+} from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -51,6 +58,8 @@ const calculateAccountYield = (account: BankAccount, balance: number, settings: 
   isSofipoExempt: settings.applySofipoExemption && account.isrExempt === true,
   sofipoExemptionLimit: settings.umaValueAnnual,
   roundingMode: account.roundingMode,
+  projectionMonthDays: settings.projectionMonthDays,
+  projectionYearDays: settings.projectionYearDays,
 });
 
 function MainApp() {
@@ -67,6 +76,8 @@ function MainApp() {
     applySofipoExemption: true,
     umaValueAnnual: SOFIPO_EXEMPTION_LIMIT,
     expectedInflation: INFLATION_ESTIMATE,
+    projectionMonthDays: DEFAULT_PROJECTION_MONTH_DAYS,
+    projectionYearDays: DEFAULT_PROJECTION_YEAR_DAYS,
   });
 
   // Purge any legacy browser localStorage on initial start
@@ -226,6 +237,8 @@ function MainApp() {
       isSofipoExempt: settings.applySofipoExemption && newAcc.isrExempt === true,
       sofipoExemptionLimit: settings.umaValueAnnual,
       roundingMode: newAcc.roundingMode,
+      projectionMonthDays: settings.projectionMonthDays,
+      projectionYearDays: settings.projectionYearDays,
     });
 
     const newRecord: DailyYieldRecord = {
@@ -473,7 +486,7 @@ function MainApp() {
             )}
 
             {activeTab === 'historial' && (
-              <HistorialView records={history} accounts={accounts} institutions={institutions} />
+              <HistorialView records={history} accounts={accounts} settings={settings} institutions={institutions} />
             )}
 
             {activeTab === 'perfil' && (

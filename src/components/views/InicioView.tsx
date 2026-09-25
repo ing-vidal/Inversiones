@@ -38,6 +38,8 @@ export const InicioView: React.FC<InicioViewProps> = ({
         isSofipoExempt: settings.applySofipoExemption && a.isrExempt === true,
         sofipoExemptionLimit: settings.umaValueAnnual,
         roundingMode: a.roundingMode,
+        projectionMonthDays: settings.projectionMonthDays,
+        projectionYearDays: settings.projectionYearDays,
       }),
     };
   });
@@ -65,8 +67,8 @@ export const InicioView: React.FC<InicioViewProps> = ({
     selectedHorizon === 'dia'
       ? 'Abono neto de hoy'
       : selectedHorizon === 'mes'
-      ? 'Proyección neta en 30 días'
-      : 'Proyección neta en 365 días (Compuesto)';
+      ? `Proyección neta en ${settings.projectionMonthDays} días`
+      : `Proyección neta en ${settings.projectionYearDays} días (Compuesto)`;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-8">
@@ -114,7 +116,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
                     }`}
                     type="button"
                   >
-                    {h === 'dia' ? 'Hoy' : h === 'mes' ? '30 Días' : '1 Año'}
+                    {h === 'dia' ? 'Hoy' : h === 'mes' ? `${settings.projectionMonthDays} días` : `${settings.projectionYearDays} días`}
                   </button>
                 ))}
               </div>

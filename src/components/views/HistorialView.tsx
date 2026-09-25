@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BankAccount, DailyYieldRecord } from '../../types/finance';
+import { BankAccount, DailyYieldRecord, UserSettings } from '../../types/finance';
 import { calculateTermProgress, formatMXN } from '../../utils/calculator';
 
 import { BankInstitution } from '../../types/finance';
@@ -7,10 +7,11 @@ import { BankInstitution } from '../../types/finance';
 interface HistorialViewProps {
   records: DailyYieldRecord[];
   accounts: BankAccount[];
+  settings: UserSettings;
   institutions?: BankInstitution[];
 }
 
-export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts, institutions = [] }) => {
+export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts, settings, institutions = [] }) => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'month' | 'year' | 'all'>('all');
 
@@ -256,6 +257,19 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts,
                 base: account.baseDivisor,
                 startDate: account.startDate,
                 endDate: account.endDate,
+                calculationMethod: account.calculationMethod,
+                titleCount: account.titleCount,
+                nominalValue: account.nominalValue,
+                isCompound: account.isCompound,
+                deductISR: account.isrMode ? account.isrMode === 'deduct' : account.deductISR,
+                isDualTier: account.isDualTier,
+                dualThreshold: account.dualThreshold,
+                dualRate2: account.dualRate2,
+                isrRate: account.isrRate ?? settings.satIsrRate,
+                isrMode: account.isrMode,
+                isSofipoExempt: settings.applySofipoExemption && account.isrExempt === true,
+                sofipoExemptionLimit: settings.umaValueAnnual,
+                roundingMode: account.roundingMode,
               });
               const maturityDate = account.endDate
                 ? new Date(`${account.endDate}T00:00:00`).toLocaleDateString('es-MX', {

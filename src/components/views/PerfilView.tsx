@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { BankInstitution, IsrMode, RoundingMode, UserSettings } from '../../types/finance';
+import { BankInstitution, CalculationMethod, IsrMode, RoundingMode, UserSettings } from '../../types/finance';
 import { AuthUser, apiUpdateAvatar } from '../../services/api';
 
 interface PerfilViewProps {
@@ -31,7 +31,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   const [inflationPercent, setInflationPercent] = useState<number>(settings.expectedInflation * 100);
   const [applyExemption, setApplyExemption] = useState<boolean>(settings.applySofipoExemption);
   const [umaLimit, setUmaLimit] = useState<number>(settings.umaValueAnnual);
+  const [projectionMonthDays, setProjectionMonthDays] = useState<number>(settings.projectionMonthDays);
+  const [projectionYearDays, setProjectionYearDays] = useState<number>(settings.projectionYearDays);
   const [savedNotice, setSavedNotice] = useState<boolean>(false);
+  const [institutionError, setInstitutionError] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [localAvatar, setLocalAvatar] = useState<string | null>(currentUser?.avatar ?? null);
@@ -43,8 +46,12 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
     defaultBase: 365 as 360 | 365,
     defaultFreq: 'diario' as 'diario' | 'semanal' | 'vencimiento',
     hasDualTier: false,
-    dualThreshold: '10000',
-    dualRate2: '7',
+    dualThreshold: '',
+    dualRate2: '',
+    defaultIsCompound: true,
+    calculationMethod: 'annual-nominal' as CalculationMethod,
+    defaultNominalValue: '10',
+    defaultTermDays: '28',
     isrRate: '0.50',
     isrMode: 'deduct' as IsrMode,
     isrExempt: false,
@@ -111,6 +118,8 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       expectedInflation: inflationPercent / 100,
       applySofipoExemption: applyExemption,
       umaValueAnnual: umaLimit,
+      projectionMonthDays,
+      projectionYearDays,
     });
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 2000);
@@ -126,8 +135,12 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       defaultBase: 365,
       defaultFreq: 'diario',
       hasDualTier: false,
-      dualThreshold: '10000',
-      dualRate2: '7',
+      dualThreshold: '',
+      dualRate2: '',
+      defaultIsCompound: true,
+      calculationMethod: 'annual-nominal',
+      defaultNominalValue: '10',
+      defaultTermDays: '28',
       isrRate: '0.50',
       isrMode: 'deduct',
       isrExempt: false,
@@ -142,6 +155,28 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   };
 
   const handleInstitutionSubmit = () => {
+    if (!institutionForm.name.trim()) {
+      setInstitutionError('Escribe el nombre de la institución.');
+      return;
+    }
+    if (institutionForm.hasDualTier && (
+      !institutionForm.dualThreshold.trim()
+      || Number(institutionForm.dualThreshold) <= 0
+      || !institutionForm.dualRate2.trim()
+      || Number(institutionForm.dualRate2) < 0
+    )) {
+      setInstitutionError('Completa el límite y la tasa del tramo excedente.');
+      return;
+    }
+    if (institutionForm.calculationMethod === 'cetes-titles' && (
+      Number(institutionForm.defaultNominalValue) <= 0
+      || Number(institutionForm.defaultTermDays) <= 0
+    )) {
+      setInstitutionError('El valor nominal y el plazo deben ser mayores que cero.');
+      return;
+    }
+
+    setInstitutionError('');
     const payload: BankInstitution = {
       id: editingInstitutionId || `inst-${Date.now()}`,
       name: institutionForm.name.trim(),
@@ -152,6 +187,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       hasDualTier: institutionForm.hasDualTier,
       dualThreshold: institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
       dualRate2: institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
+      defaultIsCompound: institutionForm.defaultIsCompound,
+      calculationMethod: institutionForm.calculationMethod,
+      defaultNominalValue: institutionForm.calculationMethod === 'cetes-titles' ? Number(institutionForm.defaultNominalValue) : undefined,
+      defaultTermDays: institutionForm.calculationMethod === 'cetes-titles' ? Number(institutionForm.defaultTermDays) : undefined,
       isrRate: Number(institutionForm.isrRate) / 100,
       isrMode: institutionForm.isrMode,
       isrExempt: institutionForm.isrExempt,
@@ -189,8 +228,12 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       defaultBase: inst.defaultBase,
       defaultFreq: inst.defaultFreq,
       hasDualTier: inst.hasDualTier,
-      dualThreshold: String(inst.dualThreshold ?? 10000),
-      dualRate2: String(inst.dualRate2 ?? 7),
+      dualThreshold: String(inst.dualThreshold ?? ''),
+      dualRate2: String(inst.dualRate2 ?? ''),
+      defaultIsCompound: inst.defaultIsCompound ?? true,
+      calculationMethod: inst.calculationMethod ?? (inst.category === 'cetes' ? 'cetes-titles' : 'annual-nominal'),
+      defaultNominalValue: String(inst.defaultNominalValue ?? 10),
+      defaultTermDays: String(inst.defaultTermDays ?? 28),
       isrRate: String((inst.isrRate ?? settings.satIsrRate) * 100),
       isrMode: inst.isrMode ?? 'deduct',
       isrExempt: inst.isrExempt ?? false,
@@ -375,6 +418,56 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                 </select>
               </label>
 
+              <label className="sm:col-span-2 flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                Método de cálculo
+                <select
+                  value={institutionForm.calculationMethod}
+                  onChange={(e) => {
+                    const calculationMethod = e.target.value as CalculationMethod;
+                    setInstitutionForm({
+                      ...institutionForm,
+                      calculationMethod,
+                      defaultFreq: calculationMethod === 'cetes-titles' ? 'vencimiento' : institutionForm.defaultFreq,
+                    });
+                  }}
+                  className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                >
+                  <option value="annual-nominal">Tasa anual sobre saldo</option>
+                  <option value="cetes-titles">Valor nominal por títulos al vencimiento</option>
+                </select>
+                <span className="font-normal normal-case text-[#76777d]">
+                  Determina cómo se estima el rendimiento; cada cuenta conserva una copia de estas reglas.
+                </span>
+              </label>
+
+              {institutionForm.calculationMethod === 'cetes-titles' && (
+                <>
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Valor nominal por título (MXN)
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={institutionForm.defaultNominalValue}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, defaultNominalValue: e.target.value })}
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Plazo predeterminado (días)
+                    <input
+                      type="number"
+                      min="1"
+                      max="3660"
+                      step="1"
+                      value={institutionForm.defaultTermDays}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, defaultTermDays: e.target.value })}
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none transition focus:border-[#006c49] focus:bg-white"
+                    />
+                  </label>
+                </>
+              )}
+
               <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
                 Base
                 <select
@@ -398,6 +491,16 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                   <option value="semanal">Semanal</option>
                   <option value="vencimiento">Vencimiento</option>
                 </select>
+              </label>
+
+              <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-[#e6f6ee] bg-[#f2faf6] px-3 py-2 text-[12px] font-hanken text-[#0b1c30]">
+                <span>Reinvertir rendimientos por defecto</span>
+                <input
+                  type="checkbox"
+                  checked={institutionForm.defaultIsCompound}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, defaultIsCompound: e.target.checked })}
+                  className="h-4 w-4 accent-[#006c49]"
+                />
               </label>
 
               <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-[#e6f6ee] bg-[#f2faf6] px-3 py-2 text-[12px] font-hanken text-[#0b1c30]">
@@ -498,6 +601,11 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                 {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
               </button>
             </div>
+            {institutionError && (
+              <p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-hanken text-[11px] text-red-700">
+                {institutionError}
+              </p>
+            )}
           </div>
 
           <div className="mt-4 flex flex-col gap-2 max-h-52 overflow-auto pr-1">
@@ -639,6 +747,43 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             onChange={(e) => setInflationPercent(parseFloat(e.target.value) || 0)}
             className="bg-[#eff4ff] px-3.5 py-1.5 rounded-lg font-space text-[14px] text-[#0b1c30] w-24 outline-none font-bold mt-1"
           />
+        </div>
+
+        <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
+          <div>
+            <div className="font-hanken text-[12px] font-semibold text-[#0b1c30]">
+              Horizontes de proyección
+            </div>
+            <p className="mt-1 font-hanken text-[11px] text-[#45464d]">
+              Define cuántos días usar para comparar periodos cortos y anuales. No cambia las condiciones de tus instituciones.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 font-hanken text-[11px] font-semibold text-[#45464d]">
+              Proyección corta (días)
+              <input
+                type="number"
+                min="1"
+                max="3660"
+                step="1"
+                value={projectionMonthDays}
+                onChange={(e) => setProjectionMonthDays(Math.max(1, Math.min(3660, Math.floor(Number(e.target.value) || 1))))}
+                className="w-full rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 font-space text-[14px] font-bold text-[#0b1c30] outline-none focus:border-[#006c49]"
+              />
+            </label>
+            <label className="flex flex-col gap-1 font-hanken text-[11px] font-semibold text-[#45464d]">
+              Proyección larga (días)
+              <input
+                type="number"
+                min="1"
+                max="3660"
+                step="1"
+                value={projectionYearDays}
+                onChange={(e) => setProjectionYearDays(Math.max(1, Math.min(3660, Math.floor(Number(e.target.value) || 1))))}
+                className="w-full rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 font-space text-[14px] font-bold text-[#0b1c30] outline-none focus:border-[#006c49]"
+              />
+            </label>
+          </div>
         </div>
 
         <button

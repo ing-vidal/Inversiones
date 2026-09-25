@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS institutions (
   "hasDualTier" INTEGER NOT NULL DEFAULT 0,
   "dualThreshold" REAL,
   "dualRate2" REAL,
+  "defaultIsCompound" INTEGER NOT NULL DEFAULT 1,
+  "calculationMethod" TEXT NOT NULL DEFAULT 'annual-nominal',
+  "defaultNominalValue" REAL NOT NULL DEFAULT 10,
+  "defaultTermDays" INTEGER NOT NULL DEFAULT 28,
   "isrRate" REAL NOT NULL DEFAULT 0.005,
   "isrMode" TEXT NOT NULL DEFAULT 'deduct',
   "isrExempt" INTEGER NOT NULL DEFAULT 0,
@@ -32,6 +36,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   "rateExpiryDate" TEXT,
   "baseDivisor" INTEGER NOT NULL,
   "paymentFrequency" TEXT NOT NULL,
+  "calculationMethod" TEXT NOT NULL DEFAULT 'annual-nominal',
   "isCompound" INTEGER NOT NULL DEFAULT 1,
   "deductISR" INTEGER NOT NULL DEFAULT 1,
   "isDualTier" INTEGER NOT NULL DEFAULT 0,
@@ -75,7 +80,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
   "satIsrRate" REAL NOT NULL,
   "applySofipoExemption" INTEGER NOT NULL DEFAULT 1,
   "umaValueAnnual" REAL NOT NULL,
-  "expectedInflation" REAL NOT NULL
+  "expectedInflation" REAL NOT NULL,
+  "projectionMonthDays" INTEGER NOT NULL DEFAULT 30,
+  "projectionYearDays" INTEGER NOT NULL DEFAULT 365
 );
 
 CREATE TABLE IF NOT EXISTS users (

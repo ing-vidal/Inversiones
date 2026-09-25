@@ -5,7 +5,13 @@
 import { neon } from '@neondatabase/serverless';
 import { hashPassword } from './auth.js';
 import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance.js';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator.js';
+import {
+  SAT_ISR_DEFAULT,
+  SOFIPO_EXEMPTION_LIMIT,
+  INFLATION_ESTIMATE,
+  DEFAULT_PROJECTION_MONTH_DAYS,
+  DEFAULT_PROJECTION_YEAR_DAYS,
+} from '../src/utils/calculator.js';
 
 function getSQL() {
   const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
@@ -36,6 +42,10 @@ export async function initDB(): Promise<void> {
       "hasDualTier" INTEGER NOT NULL DEFAULT 0,
       "dualThreshold" REAL,
       "dualRate2" REAL,
+      "defaultIsCompound" INTEGER NOT NULL DEFAULT 1,
+      "calculationMethod" TEXT NOT NULL DEFAULT 'annual-nominal',
+      "defaultNominalValue" REAL NOT NULL DEFAULT 10,
+      "defaultTermDays" INTEGER NOT NULL DEFAULT 28,
       "isrRate" REAL NOT NULL DEFAULT 0.005,
       "isrMode" TEXT NOT NULL DEFAULT 'deduct',
       "isrExempt" INTEGER NOT NULL DEFAULT 0,
@@ -63,6 +73,7 @@ export async function initDB(): Promise<void> {
       "baseDivisor" INTEGER NOT NULL,
       "paymentFrequency" TEXT NOT NULL,
       "isCompound" INTEGER NOT NULL DEFAULT 1,
+      "calculationMethod" TEXT NOT NULL DEFAULT 'annual-nominal',
       "deductISR" INTEGER NOT NULL DEFAULT 1,
       "isDualTier" INTEGER NOT NULL DEFAULT 0,
       "dualThreshold" REAL,
@@ -93,10 +104,17 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "isrMode" TEXT NOT NULL DEFAULT 'deduct'`;
   await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "isrExempt" INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "roundingMode" TEXT NOT NULL DEFAULT 'normal'`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "defaultIsCompound" INTEGER NOT NULL DEFAULT 1`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "calculationMethod" TEXT`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "defaultNominalValue" REAL NOT NULL DEFAULT 10`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "defaultTermDays" INTEGER NOT NULL DEFAULT 28`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrRate" REAL NOT NULL DEFAULT 0.005`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrMode" TEXT NOT NULL DEFAULT 'deduct'`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrExempt" INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "roundingMode" TEXT NOT NULL DEFAULT 'normal'`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "calculationMethod" TEXT`;
+  await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "projectionMonthDays" INTEGER NOT NULL DEFAULT 30`;
+  await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "projectionYearDays" INTEGER NOT NULL DEFAULT 365`;
   // One-time compatibility backfill for records created before calculation rules became editable.
   await sql`UPDATE institutions SET "isrMode" = 'none' WHERE (lower(id) = 'nu' OR lower(name) LIKE '%nu %') AND "isrRate" = 0.005 AND "isrMode" = 'deduct'`;
   await sql`UPDATE institutions SET "isrRate" = 0.009, "isrMode" = 'separate' WHERE (lower(id) = 'mifel' OR lower(name) LIKE '%mifel%') AND "isrRate" = 0.005 AND "isrMode" = 'deduct'`;
@@ -140,7 +158,9 @@ export async function initDB(): Promise<void> {
       "satIsrRate" REAL NOT NULL,
       "applySofipoExemption" INTEGER NOT NULL DEFAULT 1,
       "umaValueAnnual" REAL NOT NULL,
-      "expectedInflation" REAL NOT NULL
+      "expectedInflation" REAL NOT NULL,
+      "projectionMonthDays" INTEGER NOT NULL DEFAULT 30,
+      "projectionYearDays" INTEGER NOT NULL DEFAULT 365
     )
   `;
 
@@ -190,8 +210,12 @@ async function seedIfEmpty(): Promise<void> {
   const settingsCount = await sql`SELECT COUNT(*) as count FROM user_settings`;
   if (Number(settingsCount[0].count) === 0) {
     await sql`
-      INSERT INTO user_settings (id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation")
-      VALUES ('default', ${SAT_ISR_DEFAULT}, 1, ${SOFIPO_EXEMPTION_LIMIT}, ${INFLATION_ESTIMATE})
+      INSERT INTO user_settings (
+        id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation",
+        "projectionMonthDays", "projectionYearDays"
+      )
+      VALUES ('default', ${SAT_ISR_DEFAULT}, 1, ${SOFIPO_EXEMPTION_LIMIT}, ${INFLATION_ESTIMATE},
+              ${DEFAULT_PROJECTION_MONTH_DAYS}, ${DEFAULT_PROJECTION_YEAR_DAYS})
       ON CONFLICT (id) DO NOTHING
     `;
   }
@@ -211,6 +235,10 @@ function mapInstitution(r: any): BankInstitution {
     hasDualTier: Boolean(Number(r.hasDualTier)),
     dualThreshold: r.dualThreshold != null ? Number(r.dualThreshold) : undefined,
     dualRate2: r.dualRate2 != null ? Number(r.dualRate2) : undefined,
+    defaultIsCompound: r.defaultIsCompound == null ? true : Boolean(Number(r.defaultIsCompound)),
+    calculationMethod: r.calculationMethod || (r.category === 'cetes' ? 'cetes-titles' : 'annual-nominal'),
+    defaultNominalValue: Number(r.defaultNominalValue ?? 10),
+    defaultTermDays: Number(r.defaultTermDays ?? 28),
     isrRate: r.isrRate != null ? Number(r.isrRate) : SAT_ISR_DEFAULT,
     isrMode: r.isrMode || 'deduct',
     isrExempt: Boolean(Number(r.isrExempt)),
@@ -234,6 +262,7 @@ function mapAccount(r: any): BankAccount {
     nominalRate: Number(r.nominalRate),
     rateType: r.rateType,
     rateExpiryDate: r.rateExpiryDate ?? undefined,
+    calculationMethod: r.calculationMethod || (r.titleCount != null ? 'cetes-titles' : 'annual-nominal'),
     baseDivisor: Number(r.baseDivisor) as 360 | 365,
     paymentFrequency: r.paymentFrequency,
     isCompound: Boolean(Number(r.isCompound)),
@@ -290,12 +319,16 @@ export async function createInstitution(inst: BankInstitution): Promise<BankInst
   await sql`
     INSERT INTO institutions (
       id, name, "shortName", rate, "defaultBase", "defaultFreq",
-      "hasDualTier", "dualThreshold", "dualRate2", color, "badgeBg", "badgeText",
+      "hasDualTier", "dualThreshold", "dualRate2", "defaultIsCompound", "calculationMethod",
+      "defaultNominalValue", "defaultTermDays",
+      color, "badgeBg", "badgeText",
       "isrRate", "isrMode", "isrExempt", "roundingMode", category, "gatNominal", "gatReal"
     ) VALUES (
       ${inst.id}, ${inst.name}, ${inst.shortName}, ${inst.rate},
       ${inst.defaultBase}, ${inst.defaultFreq}, ${inst.hasDualTier ? 1 : 0},
-      ${inst.dualThreshold ?? null}, ${inst.dualRate2 ?? null}, ${inst.color},
+      ${inst.dualThreshold ?? null}, ${inst.dualRate2 ?? null}, ${inst.defaultIsCompound === false ? 0 : 1},
+      ${inst.calculationMethod ?? 'annual-nominal'}, ${inst.defaultNominalValue ?? 10},
+      ${inst.defaultTermDays ?? 28}, ${inst.color},
       ${inst.badgeBg}, ${inst.badgeText}, ${inst.isrRate ?? SAT_ISR_DEFAULT}, ${inst.isrMode ?? 'deduct'}, ${inst.isrExempt ? 1 : 0}, ${inst.roundingMode ?? 'normal'},
       ${inst.category}, ${inst.gatNominal}, ${inst.gatReal}
     )
@@ -308,6 +341,10 @@ export async function createInstitution(inst: BankInstitution): Promise<BankInst
       "hasDualTier" = EXCLUDED."hasDualTier",
       "dualThreshold" = EXCLUDED."dualThreshold",
       "dualRate2" = EXCLUDED."dualRate2",
+      "defaultIsCompound" = EXCLUDED."defaultIsCompound",
+      "calculationMethod" = EXCLUDED."calculationMethod",
+      "defaultNominalValue" = EXCLUDED."defaultNominalValue",
+      "defaultTermDays" = EXCLUDED."defaultTermDays",
       "isrRate" = EXCLUDED."isrRate",
       "isrMode" = EXCLUDED."isrMode",
       "isrExempt" = EXCLUDED."isrExempt",
@@ -339,6 +376,10 @@ export async function updateInstitution(id: string, inst: Partial<BankInstitutio
       "hasDualTier" = ${updated.hasDualTier ? 1 : 0},
       "dualThreshold" = ${updated.dualThreshold ?? null},
       "dualRate2" = ${updated.dualRate2 ?? null},
+      "defaultIsCompound" = ${updated.defaultIsCompound === false ? 0 : 1},
+      "calculationMethod" = ${updated.calculationMethod ?? 'annual-nominal'},
+      "defaultNominalValue" = ${updated.defaultNominalValue ?? 10},
+      "defaultTermDays" = ${updated.defaultTermDays ?? 28},
       "isrRate" = ${updated.isrRate ?? SAT_ISR_DEFAULT},
       "isrMode" = ${updated.isrMode ?? 'deduct'},
       "isrExempt" = ${updated.isrExempt ? 1 : 0},
@@ -375,13 +416,13 @@ export async function createAccount(acc: BankAccount, ownerId: string): Promise<
   await sql`
     INSERT INTO accounts (
       id, "ownerId", "institutionId", "institutionName", "accountNickname", balance,
-      "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency",
+      "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency", "calculationMethod",
       "isCompound", "deductISR", "isDualTier", "dualThreshold", "dualRate2",
       "isrRate", "isrMode", "isrExempt", "roundingMode", color, "badgeBg", "badgeText", "shortCode", "createdAt", "startDate", "endDate", "titleCount", "nominalValue", "daysRemaining"
     ) VALUES (
       ${acc.id}, ${ownerId}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
       ${acc.balance}, ${acc.nominalRate}, ${acc.rateType}, ${acc.rateExpiryDate ?? null},
-      ${acc.baseDivisor}, ${acc.paymentFrequency},
+      ${acc.baseDivisor}, ${acc.paymentFrequency}, ${acc.calculationMethod ?? 'annual-nominal'},
       ${acc.isCompound ? 1 : 0}, ${acc.deductISR ? 1 : 0}, ${acc.isDualTier ? 1 : 0},
       ${acc.dualThreshold ?? null}, ${acc.dualRate2 ?? null},
       ${acc.isrRate ?? SAT_ISR_DEFAULT}, ${acc.isrMode ?? 'deduct'}, ${acc.isrExempt ? 1 : 0}, ${acc.roundingMode ?? 'normal'},
@@ -419,6 +460,7 @@ export async function updateAccount(id: string, acc: Partial<BankAccount>, owner
       "rateExpiryDate" = ${updated.rateExpiryDate ?? null},
       "baseDivisor" = ${updated.baseDivisor},
       "paymentFrequency" = ${updated.paymentFrequency},
+      "calculationMethod" = ${updated.calculationMethod ?? 'annual-nominal'},
       "isCompound" = ${updated.isCompound ? 1 : 0},
       "deductISR" = ${updated.deductISR ? 1 : 0},
       "isDualTier" = ${updated.isDualTier ? 1 : 0},
@@ -592,6 +634,8 @@ export async function getUserSettings(): Promise<UserSettings> {
       applySofipoExemption: true,
       umaValueAnnual: SOFIPO_EXEMPTION_LIMIT,
       expectedInflation: INFLATION_ESTIMATE,
+      projectionMonthDays: DEFAULT_PROJECTION_MONTH_DAYS,
+      projectionYearDays: DEFAULT_PROJECTION_YEAR_DAYS,
     };
   }
   const r = rows[0];
@@ -600,6 +644,8 @@ export async function getUserSettings(): Promise<UserSettings> {
     applySofipoExemption: Boolean(Number(r.applySofipoExemption)),
     umaValueAnnual: Number(r.umaValueAnnual),
     expectedInflation: Number(r.expectedInflation),
+    projectionMonthDays: Number(r.projectionMonthDays),
+    projectionYearDays: Number(r.projectionYearDays),
   };
 }
 
@@ -608,14 +654,20 @@ export async function updateUserSettings(settings: Partial<UserSettings>): Promi
   const current = await getUserSettings();
   const updated = { ...current, ...settings };
   await sql`
-    INSERT INTO user_settings (id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation")
-    VALUES ('default', ${updated.satIsrRate}, ${updated.applySofipoExemption ? 1 : 0},
-            ${updated.umaValueAnnual}, ${updated.expectedInflation})
+        INSERT INTO user_settings (
+          id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation",
+          "projectionMonthDays", "projectionYearDays"
+        )
+        VALUES ('default', ${updated.satIsrRate}, ${updated.applySofipoExemption ? 1 : 0},
+          ${updated.umaValueAnnual}, ${updated.expectedInflation},
+          ${updated.projectionMonthDays}, ${updated.projectionYearDays})
     ON CONFLICT (id) DO UPDATE SET
       "satIsrRate" = EXCLUDED."satIsrRate",
       "applySofipoExemption" = EXCLUDED."applySofipoExemption",
       "umaValueAnnual" = EXCLUDED."umaValueAnnual",
-      "expectedInflation" = EXCLUDED."expectedInflation"
+      "expectedInflation" = EXCLUDED."expectedInflation",
+      "projectionMonthDays" = EXCLUDED."projectionMonthDays",
+      "projectionYearDays" = EXCLUDED."projectionYearDays"
   `;
   return updated;
 }
@@ -629,13 +681,19 @@ export async function resetDatabase(ownerId: string): Promise<void> {
   await sql`DELETE FROM accounts WHERE "ownerId" = ${ownerId}`;
   await sql`DELETE FROM user_settings`;
   await sql`
-    INSERT INTO user_settings (id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation")
-    VALUES ('default', ${SAT_ISR_DEFAULT}, 1, ${SOFIPO_EXEMPTION_LIMIT}, ${INFLATION_ESTIMATE})
+    INSERT INTO user_settings (
+      id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation",
+      "projectionMonthDays", "projectionYearDays"
+    )
+    VALUES ('default', ${SAT_ISR_DEFAULT}, 1, ${SOFIPO_EXEMPTION_LIMIT}, ${INFLATION_ESTIMATE},
+            ${DEFAULT_PROJECTION_MONTH_DAYS}, ${DEFAULT_PROJECTION_YEAR_DAYS})
     ON CONFLICT (id) DO UPDATE SET
       "satIsrRate" = EXCLUDED."satIsrRate",
       "applySofipoExemption" = EXCLUDED."applySofipoExemption",
       "umaValueAnnual" = EXCLUDED."umaValueAnnual",
-      "expectedInflation" = EXCLUDED."expectedInflation"
+      "expectedInflation" = EXCLUDED."expectedInflation",
+      "projectionMonthDays" = EXCLUDED."projectionMonthDays",
+      "projectionYearDays" = EXCLUDED."projectionYearDays"
   `;
 }
 
