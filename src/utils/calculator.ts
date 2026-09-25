@@ -144,13 +144,18 @@ export function calculateYield(params: {
 
   const rate1 = tasaNominal / 100;
   const rate2 = (dualRate2 ?? 7.0) / 100;
+  const truncateCents = (value: number) => Math.floor(Math.max(0, value) * 100) / 100;
 
   // 1. Gross Daily Yield
   let grossDaily = 0;
   if (isDualTier && monto > dualThreshold) {
     const tramo1 = dualThreshold;
     const tramo2 = monto - dualThreshold;
-    grossDaily = (tramo1 * rate1) / base + (tramo2 * rate2) / base;
+    const tramo1Daily = (tramo1 * rate1) / base;
+    const tramo2Daily = (tramo2 * rate2) / base;
+    grossDaily = roundDailyDown
+      ? truncateCents(tramo1Daily) + truncateCents(tramo2Daily)
+      : tramo1Daily + tramo2Daily;
   } else {
     grossDaily = (monto * rate1) / base;
   }
@@ -171,7 +176,11 @@ export function calculateYield(params: {
   const calculateNetForBalance = (balance: number): number => {
     const tierOneBalance = isDualTier ? Math.min(balance, dualThreshold) : balance;
     const tierTwoBalance = isDualTier ? Math.max(0, balance - dualThreshold) : 0;
-    const dailyGross = (tierOneBalance * rate1 + tierTwoBalance * rate2) / base;
+    const tierOneDaily = (tierOneBalance * rate1) / base;
+    const tierTwoDaily = (tierTwoBalance * rate2) / base;
+    const dailyGross = roundDailyDown
+      ? truncateCents(tierOneDaily) + truncateCents(tierTwoDaily)
+      : tierOneDaily + tierTwoDaily;
     const taxableCapital = isSofipoExempt ? Math.max(0, balance - sofipoExemptionLimit) : balance;
     const dailyIsr = deductISR ? (taxableCapital * satRate) / base : 0;
     return roundDailyDown
