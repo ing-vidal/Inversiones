@@ -20,6 +20,7 @@ export const AdminView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState('');
 
   const loadUsers = async (currentUsername = username, currentPassword = password) => {
     const response = await fetch('/api/admin', {
@@ -69,6 +70,29 @@ export const AdminView: React.FC = () => {
       setNotice(`Usuario ${user.email} eliminado.`);
     } catch (deleteError: any) {
       setError(deleteError.message || 'No se pudo eliminar el usuario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTemporaryPassword = async (user: AdminUser) => {
+    if (!window.confirm(`¿Generar una contraseña temporal para ${user.email}? Será válida durante 3 minutos.`)) return;
+    setLoading(true);
+    setError('');
+    setNotice('');
+    setTemporaryPassword('');
+    try {
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminHeaders(username, password) },
+        body: JSON.stringify({ action: 'temporary-password', userId: user.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se pudo generar la contraseña temporal');
+      setTemporaryPassword(data.temporaryPassword);
+      setNotice(`Contraseña temporal para ${user.email}. Caduca en 3 minutos.`);
+    } catch (temporaryPasswordError: any) {
+      setError(temporaryPasswordError.message || 'No se pudo generar la contraseña temporal');
     } finally {
       setLoading(false);
     }
@@ -135,6 +159,11 @@ export const AdminView: React.FC = () => {
 
         {error && <p className="mb-4 rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-200">{error}</p>}
         {notice && <p className="mb-4 rounded-lg bg-emerald-950/50 px-3 py-2 text-sm text-emerald-200">{notice}</p>}
+        {temporaryPassword && (
+          <div className="mb-4 rounded-xl border border-[#68ffc0]/50 bg-[#102842] px-4 py-3 text-sm text-[#f5fbff]">
+            Contraseña temporal: <strong className="ml-1 font-mono text-[#68ffc0]">{temporaryPassword}</strong>
+          </div>
+        )}
 
         <section className="overflow-hidden rounded-2xl border border-[#29435d] bg-[#101d31]">
           <div className="overflow-x-auto">
@@ -145,7 +174,7 @@ export const AdminView: React.FC = () => {
                   <th className="px-5 py-4">Correo</th>
                   <th className="px-5 py-4">Contraseña</th>
                   <th className="px-5 py-4">Registro</th>
-                  <th className="px-5 py-4 text-right">Acción</th>
+                  <th className="px-5 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +186,15 @@ export const AdminView: React.FC = () => {
                     <td className="px-5 py-4 text-[#91a5bc]">
                       {new Date(user.created_at).toLocaleDateString('es-MX')}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="flex justify-end gap-2 px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => handleTemporaryPassword(user)}
+                        className="rounded-lg border border-[#68ffc0]/40 px-3 py-2 text-xs font-semibold text-[#68ffc0] hover:bg-[#68ffc0]/10 disabled:opacity-50"
+                      >
+                        Temporal 3 min
+                      </button>
                       <button
                         type="button"
                         disabled={loading}
@@ -178,7 +215,7 @@ export const AdminView: React.FC = () => {
             </table>
           </div>
         </section>
-        <p className="mt-4 text-xs text-[#64788a]">Las contraseñas se almacenan como hashes y no pueden recuperarse ni mostrarse.</p>
+        <p className="mt-4 text-xs text-[#64788a]">La contraseña temporal se muestra solo al generarla y caduca automáticamente en 3 minutos.</p>
       </div>
     </main>
   );

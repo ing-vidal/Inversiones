@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, getAdminUsers, deleteUser } from '../lib/db.js';
+import { randomBytes } from 'crypto';
+import { initDB, getAdminUsers, deleteUser, createTemporaryPassword } from '../lib/db.js';
 
 const ADMIN_USER = 'admin';
 const ADMIN_PASSWORD = 'admin';
@@ -37,6 +38,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const deleted = await deleteUser(userId);
       if (!deleted) return res.status(404).json({ error: 'Usuario no encontrado' });
       return res.status(200).json({ success: true });
+    }
+
+    if (req.method === 'POST' && req.body?.action === 'temporary-password') {
+      const userId = typeof req.body.userId === 'string' ? req.body.userId : '';
+      if (!userId) return res.status(400).json({ error: 'Usuario requerido' });
+      const temporaryPassword = randomBytes(9).toString('base64url');
+      const created = await createTemporaryPassword(userId, temporaryPassword);
+      if (!created) return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(200).json({ temporaryPassword, expiresInSeconds: 180 });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

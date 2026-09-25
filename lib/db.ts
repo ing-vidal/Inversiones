@@ -3,6 +3,7 @@
  * Replaces the previous SQLite server/db.ts.
  */
 import { neon } from '@neondatabase/serverless';
+import { hashPassword } from './auth.js';
 import type { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../src/types/finance.js';
 import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE } from '../src/utils/calculator.js';
 
@@ -117,10 +118,14 @@ export async function initDB(): Promise<void> {
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      temporary_password_hash TEXT,
+      temporary_password_expires_at TEXT,
       avatar TEXT,
       created_at TEXT NOT NULL
     )
   `;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS temporary_password_hash TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS temporary_password_expires_at TEXT`;
   await sql`ALTER TABLE yield_history ADD COLUMN IF NOT EXISTS "ownerId" TEXT`;
   await sql`CREATE INDEX IF NOT EXISTS yield_history_owner_id_idx ON yield_history ("ownerId")`;
 
@@ -135,10 +140,14 @@ export async function initAuthDB(): Promise<void> {
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      temporary_password_hash TEXT,
+      temporary_password_expires_at TEXT,
       avatar TEXT,
       created_at TEXT NOT NULL
     )
   `;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS temporary_password_hash TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS temporary_password_expires_at TEXT`;
 }
 
 async function seedIfEmpty(): Promise<void> {
@@ -614,7 +623,12 @@ export async function loginUser(
   const rows = await sql`SELECT * FROM users WHERE email = ${email.toLowerCase()}`;
   if (rows.length === 0) return { error: 'Correo o contraseña incorrectos.' };
   const row = rows[0];
-  if (passwordHash !== row.password_hash) return { error: 'Correo o contraseña incorrectos.' };
+  const temporaryPasswordIsActive = row.temporary_password_hash
+    && row.temporary_password_expires_at
+    && new Date(row.temporary_password_expires_at).getTime() > Date.now();
+  const validPassword = passwordHash === row.password_hash
+    || (temporaryPasswordIsActive && passwordHash === row.temporary_password_hash);
+  if (!validPassword) return { error: 'Correo o contraseña incorrectos.' };
   return {
     user: {
       id: row.id,
@@ -660,5 +674,18 @@ export async function deleteUser(userId: string): Promise<boolean> {
   await sql`DELETE FROM accounts WHERE "ownerId" = ${userId}`;
   const deleted = await sql`DELETE FROM users WHERE id = ${userId} RETURNING id`;
   return deleted.length > 0;
+}
+
+export async function createTemporaryPassword(userId: string, temporaryPassword: string): Promise<boolean> {
+  const sql = getSQL();
+  const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+  const updated = await sql`
+    UPDATE users
+    SET temporary_password_hash = ${hashPassword(temporaryPassword)},
+        temporary_password_expires_at = ${expiresAt}
+    WHERE id = ${userId}
+    RETURNING id
+  `;
+  return updated.length > 0;
 }
 
