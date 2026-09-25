@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, getYieldHistory, createYieldRecord, updateYieldRecordBalance } from '../../lib/db.js';
+import { initDB, getYieldHistory, createYieldRecord, updateYieldRecordBalance, updateYieldRecord } from '../../lib/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
@@ -26,10 +26,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'PUT') {
       const id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
       const balanceAtTime = Number(req.body?.balanceAtTime);
+      const hasYieldChanges = ['grossYield', 'isrWithheld', 'netYield'].every(
+        (field) => Number.isFinite(Number(req.body?.[field])),
+      );
       if (!id || !Number.isFinite(balanceAtTime)) {
         return res.status(400).json({ error: 'Invalid record update data' });
       }
-      const updated = await updateYieldRecordBalance(id, balanceAtTime);
+      const updated = hasYieldChanges
+        ? await updateYieldRecord(id, {
+            grossYield: Number(req.body.grossYield),
+            isrWithheld: Number(req.body.isrWithheld),
+            netYield: Number(req.body.netYield),
+            balanceAtTime,
+          })
+        : await updateYieldRecordBalance(id, balanceAtTime);
       if (!updated) return res.status(404).json({ error: 'Record not found' });
       return res.status(200).json(updated);
     }

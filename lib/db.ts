@@ -430,6 +430,23 @@ export async function updateYieldRecordBalance(
   return rows.length > 0 ? mapHistory(rows[0]) : null;
 }
 
+export async function updateYieldRecord(
+  id: string,
+  changes: Pick<DailyYieldRecord, 'grossYield' | 'isrWithheld' | 'netYield' | 'balanceAtTime'>,
+): Promise<DailyYieldRecord | null> {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE yield_history
+    SET "grossYield" = ${changes.grossYield},
+        "isrWithheld" = ${changes.isrWithheld},
+        "netYield" = ${changes.netYield},
+        "balanceAtTime" = ${changes.balanceAtTime}
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  return rows.length > 0 ? mapHistory(rows[0]) : null;
+}
+
 export async function accrueAccount(
   id: string,
   records: DailyYieldRecord[],
