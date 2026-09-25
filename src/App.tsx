@@ -416,6 +416,7 @@ function MainApp() {
   const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
     setActiveUserId(user.id);
+    setActiveTab('inicio');
     setIsLoggedIn(true);
     setIsLoading(true);
     loadDatabaseData();
@@ -480,6 +481,7 @@ function MainApp() {
               <InicioView
                 accounts={accounts}
                 settings={settings}
+                onNavigateToInstitution={() => setActiveTab('perfil')}
                 onNavigateToRegister={() => setActiveTab('cuentas')}
                 onNavigateToHistory={() => setActiveTab('historial')}
               />
