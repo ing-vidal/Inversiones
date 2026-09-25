@@ -374,8 +374,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'cuentas'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'cuentas'
-              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
-              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
+              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
         >
@@ -387,8 +387,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'registrar'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'registrar'
-              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
-              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
+              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
         >
@@ -400,8 +400,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'simulador'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'simulador'
-              ? 'bg-[#55e6a5]/20 text-[#6ffbbe] ring-1 ring-[#55e6a5]/50 shadow-sm font-semibold'
-              : 'text-[#bec6e0] hover:bg-white/5 hover:text-white'
+              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
         >
@@ -459,8 +459,15 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               </span>
             </div>
 
+            {institutions.length > 1 && (
+              <div className="flex items-center justify-end gap-1 font-hanken text-[10px] font-medium text-[#45d9ff] sm:hidden">
+                <span>Desliza para ver más</span>
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">swipe</span>
+              </div>
+            )}
+
             {/* Chips Carousel on Mobile / Grid on Desktop */}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap no-scrollbar">
+            <div role="region" aria-label="Instituciones disponibles" tabIndex={0} className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap no-scrollbar focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#45d9ff]/70">
               {institutions.map((inst) => {
                 const isSelected = selectedInst?.id === inst.id;
                 return (
@@ -470,7 +477,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     type="button"
                     className={`shrink-0 px-4 py-3 rounded-xl bg-white shadow-sm flex flex-col items-center gap-1 active:scale-95 transition-all text-left w-32 border ${
                       isSelected
-                        ? 'border-2 border-[#0b1c30] shadow-md'
+                        ? 'border-2 border-[#45d9ff] shadow-[0_0_18px_rgba(69,217,255,0.24)] ring-1 ring-[#b56cff]/50'
                         : 'border-[#e2e8f0]/80 hover:border-slate-300'
                     }`}
                   >

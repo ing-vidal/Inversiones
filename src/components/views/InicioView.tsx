@@ -139,10 +139,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={onNavigateToInstitution}
-            className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center gap-3 active:scale-98 transition-all hover:border-[#006c49]/50 hover:shadow-sm text-left"
+            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#45d9ff]/45 shadow-[0_0_16px_rgba(69,217,255,0.08)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#45d9ff] hover:shadow-[0_0_20px_rgba(69,217,255,0.2)] text-left"
             type="button"
           >
-            <div className="w-10 h-10 rounded-full bg-[#006c49]/10 text-[#006c49] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#45d9ff]/10 text-[#45d9ff] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[22px]">account_balance</span>
             </div>
             <div className="flex flex-col min-w-0">
@@ -157,10 +157,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
           <button
             onClick={onNavigateToRegister}
-            className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center gap-3 active:scale-98 transition-all hover:border-[#006c49]/50 hover:shadow-sm text-left"
+            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#b56cff]/45 shadow-[0_0_16px_rgba(181,108,255,0.08)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#b56cff] hover:shadow-[0_0_20px_rgba(181,108,255,0.2)] text-left"
             type="button"
           >
-            <div className="w-10 h-10 rounded-full bg-[#006c49]/10 text-[#006c49] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#b56cff]/10 text-[#b56cff] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[22px]">add</span>
             </div>
             <div className="flex flex-col min-w-0">
@@ -175,10 +175,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
           <button
             onClick={onNavigateToHistory}
-            className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center gap-3 active:scale-98 transition-all hover:border-[#006c49]/50 hover:shadow-sm text-left"
+            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#45d9ff]/35 shadow-[0_0_16px_rgba(69,217,255,0.06)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#45d9ff] hover:shadow-[0_0_20px_rgba(69,217,255,0.18)] text-left"
             type="button"
           >
-            <div className="w-10 h-10 rounded-full bg-blue-50 text-[#009EE3] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#45d9ff]/10 text-[#45d9ff] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[22px]">receipt_long</span>
             </div>
             <div className="flex flex-col min-w-0">
