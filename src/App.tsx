@@ -10,7 +10,7 @@ import { BottomNav, MainTab } from './components/BottomNav';
 import { CuentasView } from './components/views/CuentasView';
 import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
-import { PerfilView } from './components/views/PerfilView';
+import { PerfilSection, PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
 import { AdminView } from './components/views/AdminView';
 import {
@@ -66,6 +66,7 @@ function MainApp() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<MainTab>('cuentas');
+  const [profileSection, setProfileSection] = useState<PerfilSection>('preferencias');
   const [dbStatus, setDbStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [institutions, setInstitutions] = useState<BankInstitution[]>([]);
@@ -426,6 +427,11 @@ function MainApp() {
     setCurrentUser(updatedUser);
   };
 
+  const openProfile = (section: PerfilSection) => {
+    setProfileSection(section);
+    setActiveTab('perfil');
+  };
+
   // Screen title for header
   const screenTitles: Record<MainTab, string> = {
     cuentas: 'Cuentas Bancos',
@@ -444,7 +450,7 @@ function MainApp() {
       {/* Sticky Top Header with DB Connection Status & Desktop Nav */}
       <Header
         activeScreenTitle={screenTitles[activeTab]}
-        onProfileClick={() => setActiveTab('perfil')}
+        onProfileClick={() => openProfile('preferencias')}
         dbStatus={dbStatus}
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -472,7 +478,7 @@ function MainApp() {
                 onUpdateAccount={handleUpdateAccount}
                 onDeleteAccount={handleDeleteAccount}
                 onDepositWithdraw={handleDepositWithdraw}
-                onOpenProfile={() => setActiveTab('perfil')}
+                onOpenProfile={() => openProfile('alta')}
                 initialSubTab="registrar"
               />
             )}
@@ -481,7 +487,7 @@ function MainApp() {
               <InicioView
                 accounts={accounts}
                 settings={settings}
-                onNavigateToInstitution={() => setActiveTab('perfil')}
+                onNavigateToInstitution={() => openProfile('alta')}
                 onNavigateToRegister={() => setActiveTab('cuentas')}
                 onNavigateToHistory={() => setActiveTab('historial')}
               />
@@ -493,6 +499,8 @@ function MainApp() {
 
             {activeTab === 'perfil' && (
               <PerfilView
+                activeSection={profileSection}
+                onSectionChange={setProfileSection}
                 settings={settings}
                 institutions={institutions}
                 onUpdateSettings={handleUpdateSettings}

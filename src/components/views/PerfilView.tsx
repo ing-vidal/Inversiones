@@ -2,7 +2,11 @@ import React, { useState, useRef } from 'react';
 import { BankInstitution, CalculationMethod, IsrMode, RoundingMode, UserSettings } from '../../types/finance';
 import { AuthUser, apiUpdateAvatar } from '../../services/api';
 
+export type PerfilSection = 'alta' | 'administrar' | 'preferencias';
+
 interface PerfilViewProps {
+  activeSection: PerfilSection;
+  onSectionChange: (section: PerfilSection) => void;
   settings: UserSettings;
   institutions: BankInstitution[];
   onUpdateSettings: (newSettings: UserSettings) => void;
@@ -16,6 +20,8 @@ interface PerfilViewProps {
 }
 
 export const PerfilView: React.FC<PerfilViewProps> = ({
+  activeSection,
+  onSectionChange,
   settings,
   institutions,
   onUpdateSettings,
@@ -346,6 +352,30 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           Parámetros Fiscales y SAT México
         </h4>
 
+        <div role="tablist" aria-label="Secciones de Configuración SAT" className="bg-[#0b1218]/80 p-1 rounded-xl flex items-center gap-1 shadow-xs border border-[#29435d]">
+          {([
+            { id: 'alta', label: 'Alta' },
+            { id: 'administrar', label: `Admin (${institutions.length})` },
+            { id: 'preferencias', label: 'Preferencias' },
+          ] as const).map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              role="tab"
+              aria-selected={activeSection === section.id}
+              onClick={() => onSectionChange(section.id)}
+              className={`flex-1 min-w-0 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[11px] sm:text-[12px] transition-all select-none ${
+                activeSection === section.id
+                  ? 'neon-rate-badge font-semibold'
+                  : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+
+        {activeSection === 'alta' && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
@@ -608,7 +638,16 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             )}
           </div>
 
-          <div className="mt-4 flex flex-col gap-2 max-h-52 overflow-auto pr-1">
+          </div>
+        )}
+
+        {activeSection === 'administrar' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h5 className="font-space font-semibold text-[15px] text-[#0b1c30]">Instituciones registradas</h5>
+              <span className="font-hanken text-[12px] text-[#45d9ff]">{institutions.length} en total</span>
+            </div>
+            <div className="flex flex-col gap-2 max-h-[60vh] overflow-auto pr-1">
             {institutions.length === 0 && (
               <div className="rounded-xl border border-dashed border-[#cfe0ff] bg-white/80 px-3 py-3 text-center text-[12px] text-[#45464d]">
                 No hay instituciones agregadas.
@@ -649,10 +688,12 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                 </div>
               </div>
             ))}
+            </div>
           </div>
-        </div>
+        )}
 
-
+        {activeSection === 'preferencias' && (
+        <div className="flex flex-col gap-4">
         {/* SAT ISR Rate */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
@@ -791,8 +832,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           type="button"
           className="w-full mt-2 py-3 bg-[#0b1c30] text-white rounded-xl font-hanken text-[13px] font-semibold hover:bg-[#131b2e] transition-colors shadow-xs"
         >
-          {savedNotice ? '¡Guardado en base de datos!' : 'Guardar Preferencias en Base de Datos'}
+          {savedNotice ? '¡Preferencias guardadas!' : 'Guardar preferencias'}
         </button>
+        </div>
+        )}
       </div>
     </div>
   );
