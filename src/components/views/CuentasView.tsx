@@ -828,6 +828,16 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   .filter((record) => record.accountId === acc.id)
                   .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]
                 : undefined;
+              const maturityAmount = acc.paymentFrequency === 'vencimiento'
+                ? acc.balance * (1 + acc.nominalRate / 100)
+                : 0;
+              const maturityDate = acc.endDate
+                ? new Date(`${acc.endDate}T00:00:00`).toLocaleDateString('es-MX', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })
+                : undefined;
             const res = calculateYield({
               monto: acc.balance,
               tasaNominal: acc.nominalRate,
@@ -889,7 +899,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   <div className="flex flex-col items-end">
                     <span className="font-hanken text-[11px] text-[#45464d]">
                       {acc.paymentFrequency === 'vencimiento'
-                        ? 'Interés al cobrar'
+                        ? 'Recibirás al finalizar'
                         : isMifelAccount
                         ? 'Intereses'
                         : 'Abono de hoy'}
@@ -899,12 +909,17 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                         isMifelAccount
                           ? latestRecord?.grossYield ?? res.grossDaily
                           : acc.paymentFrequency === 'vencimiento'
-                          ? res.netDaily * (acc.daysRemaining || 28)
+                          ? maturityAmount
                           : res.netDaily,
-                        { showSign: true }
+                        { showSign: acc.paymentFrequency !== 'vencimiento' }
                       )}{' '}
                       MXN
                     </span>
+                    {acc.paymentFrequency === 'vencimiento' && maturityDate && (
+                      <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
+                        Al finalizar: {maturityDate}
+                      </span>
+                    )}
                     {isMifelAccount && (
                       <span className="font-hanken text-[10px] text-[#b4534b] whitespace-nowrap">
                         ISR retenido: -${(latestRecord?.isrWithheld ?? res.isrDaily).toFixed(2)}
