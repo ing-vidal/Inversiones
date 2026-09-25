@@ -192,6 +192,10 @@
   color: #071323 !important;
 }
 
+.dark-ui .neon-rate-badge * {
+  color: #071323 !important;
+}
+
 .dark-ui [class*="border-[#006c49]"] {
   border-color: var(--accent) !important;
 }

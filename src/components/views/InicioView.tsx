@@ -139,7 +139,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={onNavigateToInstitution}
-            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#45d9ff]/45 shadow-[0_0_16px_rgba(69,217,255,0.08)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#45d9ff] hover:shadow-[0_0_20px_rgba(69,217,255,0.2)] text-left"
+            className="neon-rate-badge p-3.5 sm:p-4 rounded-xl flex items-center gap-3 active:scale-98 transition-all text-left"
             type="button"
           >
             <div className="w-10 h-10 rounded-full bg-[#45d9ff]/10 text-[#45d9ff] flex items-center justify-center shrink-0">
@@ -157,7 +157,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
           <button
             onClick={onNavigateToRegister}
-            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#b56cff]/45 shadow-[0_0_16px_rgba(181,108,255,0.08)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#b56cff] hover:shadow-[0_0_20px_rgba(181,108,255,0.2)] text-left"
+            className="neon-rate-badge p-3.5 sm:p-4 rounded-xl flex items-center gap-3 active:scale-98 transition-all text-left"
             type="button"
           >
             <div className="w-10 h-10 rounded-full bg-[#b56cff]/10 text-[#b56cff] flex items-center justify-center shrink-0">
@@ -175,7 +175,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
           <button
             onClick={onNavigateToHistory}
-            className="bg-[#0d1726] p-3.5 sm:p-4 rounded-xl border border-[#45d9ff]/35 shadow-[0_0_16px_rgba(69,217,255,0.06)] flex items-center gap-3 active:scale-98 transition-all hover:border-[#45d9ff] hover:shadow-[0_0_20px_rgba(69,217,255,0.18)] text-left"
+            className="neon-rate-badge p-3.5 sm:p-4 rounded-xl flex items-center gap-3 active:scale-98 transition-all text-left"
             type="button"
           >
             <div className="w-10 h-10 rounded-full bg-[#45d9ff]/10 text-[#45d9ff] flex items-center justify-center shrink-0">

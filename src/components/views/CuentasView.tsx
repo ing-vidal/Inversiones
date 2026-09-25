@@ -374,7 +374,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'cuentas'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'cuentas'
-              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              ? 'neon-rate-badge font-semibold'
               : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
@@ -387,7 +387,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'registrar'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'registrar'
-              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              ? 'neon-rate-badge font-semibold'
               : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
@@ -400,7 +400,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           aria-selected={subTab === 'simulador'}
           className={`flex-1 min-h-11 px-1 py-2 rounded-lg text-center font-hanken text-[12px] transition-all select-none ${
             subTab === 'simulador'
-              ? 'bg-gradient-to-r from-[#45d9ff]/20 to-[#b56cff]/20 text-[#45d9ff] ring-1 ring-[#45d9ff]/60 shadow-[0_0_16px_rgba(69,217,255,0.18)] font-semibold'
+              ? 'neon-rate-badge font-semibold'
               : 'text-[#a9b7ca] hover:bg-white/5 hover:text-[#45d9ff]'
           }`}
           type="button"
