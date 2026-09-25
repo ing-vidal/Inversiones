@@ -477,6 +477,28 @@ export async function accrueAccount(
   return { ...current, balance: newBalance };
 }
 
+export async function freezeTermAccount(id: string): Promise<BankAccount | null> {
+  const sql = getSQL();
+  const accountRows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  if (accountRows.length === 0) return null;
+
+  const historyRows = await sql`
+    SELECT * FROM yield_history
+    WHERE "accountId" = ${id}
+    ORDER BY "createdAt" ASC
+  `;
+  const current = mapAccount(accountRows[0]);
+  const accruedBalance = historyRows.slice(1).reduce((sum, row) => sum + Number(row.netYield), 0);
+  const restoredBalance = Math.max(0, current.balance - accruedBalance);
+
+  await sql.transaction([
+    sql`UPDATE accounts SET balance = ${restoredBalance} WHERE id = ${id}`,
+    sql`DELETE FROM yield_history WHERE "accountId" = ${id}`,
+  ]);
+
+  return { ...current, balance: restoredBalance };
+}
+
 // ---------------------------------------------------------------------------
 // CRUD: Settings
 // ---------------------------------------------------------------------------

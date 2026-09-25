@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, updateAccount, deleteAccount, accrueAccount } from '../../lib/db.js';
+import { initDB, updateAccount, deleteAccount, accrueAccount, freezeTermAccount } from '../../lib/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
@@ -32,6 +32,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!updated) {
         return res.status(404).json({ error: 'Account not found' });
       }
+      return res.status(200).json(updated);
+    }
+
+    if (req.method === 'POST' && req.body?.action === 'freeze-term') {
+      const updated = await freezeTermAccount(id);
+      if (!updated) return res.status(404).json({ error: 'Account not found' });
       return res.status(200).json(updated);
     }
 

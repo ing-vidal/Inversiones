@@ -23,6 +23,7 @@ import {
   apiCreateAccount,
   apiUpdateBalance,
   apiAccrueAccount,
+  apiFreezeTermAccount,
   apiDeleteAccount,
   fetchYieldHistory,
   apiCreateYieldRecord,
@@ -141,6 +142,16 @@ export default function App() {
       const updatedAccounts = (dbAccounts || []).map(normalizeAccount);
 
       for (const account of updatedAccounts) {
+        if (account.paymentFrequency === 'vencimiento') {
+          const updated = await apiFreezeTermAccount(account.id);
+          const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
+          if (accountIndex >= 0) updatedAccounts[accountIndex] = normalizeAccount(updated);
+          for (let index = dbHistory.length - 1; index >= 0; index -= 1) {
+            if (dbHistory[index].accountId === account.id) dbHistory.splice(index, 1);
+          }
+          continue;
+        }
+
         const accountRecords = (dbHistory || [])
           .filter((record) => record.accountId === account.id && record.createdAt)
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -288,13 +299,17 @@ export default function App() {
       balanceAtTime: newAcc.balance,
     };
 
-    setHistory((prev) => [newRecord, ...prev]);
+    if (newAcc.paymentFrequency !== 'vencimiento') {
+      setHistory((prev) => [newRecord, ...prev]);
+    }
 
     // Persist to SQLite database
     try {
       setDbStatus('syncing');
       await apiCreateAccount(newAcc);
-      await apiCreateYieldRecord(newRecord);
+      if (newAcc.paymentFrequency !== 'vencimiento') {
+        await apiCreateYieldRecord(newRecord);
+      }
       setDbStatus('connected');
     } catch (error) {
       console.error('Error al insertar en la base de datos:', error);

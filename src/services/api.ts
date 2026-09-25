@@ -100,6 +100,16 @@ export async function apiAccrueAccount(
   return await res.json();
 }
 
+export async function apiFreezeTermAccount(id: string): Promise<BankAccount> {
+  const res = await fetch(`${BASE_URL}/accounts/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'freeze-term' }),
+  });
+  if (!res.ok) throw new Error('Error al congelar saldo de plazo fijo');
+  return await res.json();
+}
+
 export async function apiDeleteAccount(id: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'DELETE',
