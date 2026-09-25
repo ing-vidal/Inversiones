@@ -635,3 +635,30 @@ export async function updateUserAvatar(userId: string, avatarBase64: string): Pr
   return { id: r.id, name: r.name, email: r.email, avatar: avatarBase64, created_at: r.created_at };
 }
 
+export async function getAdminUsers(): Promise<UserRow[]> {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT id, name, email, avatar, created_at
+    FROM users
+    ORDER BY created_at DESC
+  `;
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    avatar: row.avatar ?? null,
+    created_at: row.created_at,
+  }));
+}
+
+export async function deleteUser(userId: string): Promise<boolean> {
+  const sql = getSQL();
+  const users = await sql`SELECT id FROM users WHERE id = ${userId}`;
+  if (users.length === 0) return false;
+
+  await sql`DELETE FROM yield_history WHERE "ownerId" = ${userId}`;
+  await sql`DELETE FROM accounts WHERE "ownerId" = ${userId}`;
+  const deleted = await sql`DELETE FROM users WHERE id = ${userId} RETURNING id`;
+  return deleted.length > 0;
+}
+

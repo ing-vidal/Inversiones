@@ -12,6 +12,7 @@ import { InicioView } from './components/views/InicioView';
 import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
+import { AdminView } from './components/views/AdminView';
 import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, getInstitutionSatRate, isDidiInstitution, isMifelInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
@@ -87,7 +88,7 @@ const calculateAccountYield = (account: BankAccount, balance: number, settings: 
   roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
 });
 
-export default function App() {
+function MainApp() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<MainTab>('cuentas');
@@ -537,4 +538,12 @@ export default function App() {
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
+}
+
+export default function App() {
+  if (window.location.pathname === '/admin') {
+    return <AdminView />;
+  }
+
+  return <MainApp />;
 }
