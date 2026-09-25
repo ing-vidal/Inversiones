@@ -136,7 +136,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
         </div>
 
         {/* Quick Action Shortcuts */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={onNavigateToInstitution}
             className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center gap-3 active:scale-98 transition-all hover:border-[#006c49]/50 hover:shadow-sm text-left"
@@ -146,10 +146,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
               <span className="material-symbols-outlined text-[22px]">account_balance</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] truncate">
+              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] whitespace-normal break-words">
                 Nueva Institución
               </span>
-              <span className="font-hanken text-[11px] text-[#45464d] truncate">
+              <span className="font-hanken text-[11px] text-[#45464d] whitespace-normal break-words">
                 Alta en Configuración SAT
               </span>
             </div>
@@ -164,10 +164,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
               <span className="material-symbols-outlined text-[22px]">add</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] truncate">
+              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] whitespace-normal break-words">
                 Nueva Cuenta
               </span>
-              <span className="font-hanken text-[11px] text-[#45464d] truncate">
+              <span className="font-hanken text-[11px] text-[#45464d] whitespace-normal break-words">
                 Fórmula y tasa personalizada
               </span>
             </div>
@@ -182,10 +182,10 @@ export const InicioView: React.FC<InicioViewProps> = ({
               <span className="material-symbols-outlined text-[22px]">receipt_long</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] truncate">
+              <span className="font-hanken font-semibold text-[13px] sm:text-[14px] text-[#0b1c30] whitespace-normal break-words">
                 Ver Historial
               </span>
-              <span className="font-hanken text-[11px] text-[#45464d] truncate">
+              <span className="font-hanken text-[11px] text-[#45464d] whitespace-normal break-words">
                 Abonos y retenciones
               </span>
             </div>
