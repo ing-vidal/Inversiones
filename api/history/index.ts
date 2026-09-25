@@ -8,9 +8,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await initDB();
+    const ownerId = req.headers['x-user-id'];
+    if (typeof ownerId !== 'string' || !ownerId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (req.method === 'GET') {
-      const history = await getYieldHistory();
+      const history = await getYieldHistory(ownerId);
       return res.status(200).json(history);
     }
 
@@ -19,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!record || !record.id || !record.bankName) {
         return res.status(400).json({ error: 'Invalid record data' });
       }
-      const created = await createYieldRecord(record);
+      const created = await createYieldRecord(record, ownerId);
       return res.status(201).json(created);
     }
 
@@ -38,8 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             isrWithheld: Number(req.body.isrWithheld),
             netYield: Number(req.body.netYield),
             balanceAtTime,
-          })
-        : await updateYieldRecordBalance(id, balanceAtTime);
+          }, ownerId)
+        : await updateYieldRecordBalance(id, balanceAtTime, ownerId);
       if (!updated) return res.status(404).json({ error: 'Record not found' });
       return res.status(200).json(updated);
     }

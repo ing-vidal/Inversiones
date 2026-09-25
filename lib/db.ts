@@ -47,6 +47,7 @@ export async function initDB(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS accounts (
       id TEXT PRIMARY KEY,
+      "ownerId" TEXT,
       "institutionId" TEXT NOT NULL,
       "institutionName" TEXT NOT NULL,
       "accountNickname" TEXT NOT NULL,
@@ -78,10 +79,13 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "endDate" TEXT`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "titleCount" INTEGER`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "nominalValue" REAL`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "ownerId" TEXT`;
+  await sql`CREATE INDEX IF NOT EXISTS accounts_owner_id_idx ON accounts ("ownerId")`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS yield_history (
       id TEXT PRIMARY KEY,
+      "ownerId" TEXT,
       "accountId" TEXT NOT NULL,
       "bankName" TEXT NOT NULL,
       "shortCode" TEXT NOT NULL,
@@ -117,6 +121,8 @@ export async function initDB(): Promise<void> {
       created_at TEXT NOT NULL
     )
   `;
+  await sql`ALTER TABLE yield_history ADD COLUMN IF NOT EXISTS "ownerId" TEXT`;
+  await sql`CREATE INDEX IF NOT EXISTS yield_history_owner_id_idx ON yield_history ("ownerId")`;
 
   await seedIfEmpty();
 }
@@ -300,22 +306,22 @@ export async function deleteInstitution(id: string): Promise<boolean> {
 // ---------------------------------------------------------------------------
 // CRUD: Accounts
 // ---------------------------------------------------------------------------
-export async function getAccounts(): Promise<BankAccount[]> {
+export async function getAccounts(ownerId: string): Promise<BankAccount[]> {
   const sql = getSQL();
-  const rows = await sql`SELECT * FROM accounts ORDER BY "createdAt" DESC`;
+  const rows = await sql`SELECT * FROM accounts WHERE "ownerId" = ${ownerId} ORDER BY "createdAt" DESC`;
   return rows.map(mapAccount);
 }
 
-export async function createAccount(acc: BankAccount): Promise<BankAccount> {
+export async function createAccount(acc: BankAccount, ownerId: string): Promise<BankAccount> {
   const sql = getSQL();
   await sql`
     INSERT INTO accounts (
-      id, "institutionId", "institutionName", "accountNickname", balance,
+      id, "ownerId", "institutionId", "institutionName", "accountNickname", balance,
       "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency",
       "isCompound", "deductISR", "isDualTier", "dualThreshold", "dualRate2",
       color, "badgeBg", "badgeText", "shortCode", "createdAt", "startDate", "endDate", "titleCount", "nominalValue", "daysRemaining"
     ) VALUES (
-      ${acc.id}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
+      ${acc.id}, ${ownerId}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
       ${acc.balance}, ${acc.nominalRate}, ${acc.rateType}, ${acc.rateExpiryDate ?? null},
       ${acc.baseDivisor}, ${acc.paymentFrequency},
       ${acc.isCompound ? 1 : 0}, ${acc.deductISR ? 1 : 0}, ${acc.isDualTier ? 1 : 0},
@@ -327,19 +333,19 @@ export async function createAccount(acc: BankAccount): Promise<BankAccount> {
   return acc;
 }
 
-export async function updateAccountBalance(id: string, amountDelta: number): Promise<BankAccount | null> {
+export async function updateAccountBalance(id: string, amountDelta: number, ownerId: string): Promise<BankAccount | null> {
   const sql = getSQL();
-  const rows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId}`;
   if (rows.length === 0) return null;
   const current = mapAccount(rows[0]);
   const newBalance = Math.max(0, current.balance + amountDelta);
-  await sql`UPDATE accounts SET balance = ${newBalance} WHERE id = ${id}`;
+  await sql`UPDATE accounts SET balance = ${newBalance} WHERE id = ${id} AND "ownerId" = ${ownerId}`;
   return { ...current, balance: newBalance };
 }
 
-export async function updateAccount(id: string, acc: Partial<BankAccount>): Promise<BankAccount | null> {
+export async function updateAccount(id: string, acc: Partial<BankAccount>, ownerId: string): Promise<BankAccount | null> {
   const sql = getSQL();
-  const rows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId}`;
   if (rows.length === 0) return null;
   const current = mapAccount(rows[0]);
   const updated = { ...current, ...acc };
@@ -368,16 +374,18 @@ export async function updateAccount(id: string, acc: Partial<BankAccount>): Prom
       "titleCount" = ${updated.titleCount ?? null},
       "nominalValue" = ${updated.nominalValue ?? null},
       "daysRemaining" = ${updated.daysRemaining ?? null}
-    WHERE id = ${id}
+    WHERE id = ${id} AND "ownerId" = ${ownerId}
   `;
   return updated;
 }
 
-export async function deleteAccount(id: string): Promise<boolean> {
+export async function deleteAccount(id: string, ownerId: string): Promise<boolean> {
   const sql = getSQL();
 
-  await sql`DELETE FROM yield_history WHERE "accountId" = ${id}`;
-  const deletedRows = await sql`DELETE FROM accounts WHERE id = ${id} RETURNING id`;
+  const accountRows = await sql`SELECT id FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId}`;
+  if (accountRows.length === 0) return false;
+  await sql`DELETE FROM yield_history WHERE "accountId" = ${id} AND "ownerId" = ${ownerId}`;
+  const deletedRows = await sql`DELETE FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId} RETURNING id`;
 
   return deletedRows.length > 0;
 }
@@ -385,26 +393,33 @@ export async function deleteAccount(id: string): Promise<boolean> {
 // ---------------------------------------------------------------------------
 // CRUD: Yield History
 // ---------------------------------------------------------------------------
-export async function getYieldHistory(): Promise<DailyYieldRecord[]> {
+export async function getYieldHistory(ownerId: string): Promise<DailyYieldRecord[]> {
   try {
     const sql = getSQL();
-    const rows = await sql`SELECT * FROM yield_history ORDER BY "createdAt" DESC LIMIT 100`;
+    const rows = await sql`
+      SELECT history.*
+      FROM yield_history history
+      INNER JOIN accounts account ON account.id = history."accountId"
+      WHERE account."ownerId" = ${ownerId}
+      ORDER BY history."createdAt" DESC
+      LIMIT 100
+    `;
     return rows.map(mapHistory);
   } catch (error: any) {
     throw new Error(`getYieldHistory failed: ${error?.message || String(error)}`);
   }
 }
 
-export async function createYieldRecord(record: DailyYieldRecord): Promise<DailyYieldRecord> {
+export async function createYieldRecord(record: DailyYieldRecord, ownerId: string): Promise<DailyYieldRecord> {
   try {
     const sql = getSQL();
     const createdAt = record.createdAt ?? Date.now();
     await sql`
       INSERT INTO yield_history (
-        id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
+        id, "ownerId", "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
         date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
       ) VALUES (
-        ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
+        ${record.id}, ${ownerId}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
         ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
         ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
         ${record.balanceAtTime}, ${createdAt}
@@ -419,12 +434,13 @@ export async function createYieldRecord(record: DailyYieldRecord): Promise<Daily
 export async function updateYieldRecordBalance(
   id: string,
   balanceAtTime: number,
+  ownerId: string,
 ): Promise<DailyYieldRecord | null> {
   const sql = getSQL();
   const rows = await sql`
     UPDATE yield_history
     SET "balanceAtTime" = ${balanceAtTime}
-    WHERE id = ${id}
+    WHERE id = ${id} AND "ownerId" = ${ownerId}
     RETURNING *
   `;
   return rows.length > 0 ? mapHistory(rows[0]) : null;
@@ -433,6 +449,7 @@ export async function updateYieldRecordBalance(
 export async function updateYieldRecord(
   id: string,
   changes: Pick<DailyYieldRecord, 'grossYield' | 'isrWithheld' | 'netYield' | 'balanceAtTime'>,
+  ownerId: string,
 ): Promise<DailyYieldRecord | null> {
   const sql = getSQL();
   const rows = await sql`
@@ -441,7 +458,7 @@ export async function updateYieldRecord(
         "isrWithheld" = ${changes.isrWithheld},
         "netYield" = ${changes.netYield},
         "balanceAtTime" = ${changes.balanceAtTime}
-    WHERE id = ${id}
+    WHERE id = ${id} AND "ownerId" = ${ownerId}
     RETURNING *
   `;
   return rows.length > 0 ? mapHistory(rows[0]) : null;
@@ -451,21 +468,22 @@ export async function accrueAccount(
   id: string,
   records: DailyYieldRecord[],
   totalDelta: number,
+  ownerId: string,
 ): Promise<BankAccount | null> {
   const sql = getSQL();
-  const rows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId}`;
   if (rows.length === 0) return null;
 
   const current = mapAccount(rows[0]);
   const newBalance = Math.max(0, current.balance + totalDelta);
   const statements = [
-    sql`UPDATE accounts SET balance = ${newBalance} WHERE id = ${id}`,
+    sql`UPDATE accounts SET balance = ${newBalance} WHERE id = ${id} AND "ownerId" = ${ownerId}`,
     ...records.map((record) => sql`
       INSERT INTO yield_history (
-        id, "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
+        id, "ownerId", "accountId", "bankName", "shortCode", "badgeBg", "badgeText",
         date, time, "grossYield", "isrWithheld", "netYield", "balanceAtTime", "createdAt"
       ) VALUES (
-        ${record.id}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
+        ${record.id}, ${ownerId}, ${record.accountId}, ${record.bankName}, ${record.shortCode},
         ${record.badgeBg}, ${record.badgeText}, ${record.date}, ${record.time},
         ${record.grossYield}, ${record.isrWithheld}, ${record.netYield},
         ${record.balanceAtTime}, ${record.createdAt ?? Date.now()}
@@ -477,9 +495,9 @@ export async function accrueAccount(
   return { ...current, balance: newBalance };
 }
 
-export async function freezeTermAccount(id: string): Promise<BankAccount | null> {
+export async function freezeTermAccount(id: string, ownerId: string): Promise<BankAccount | null> {
   const sql = getSQL();
-  const accountRows = await sql`SELECT * FROM accounts WHERE id = ${id}`;
+  const accountRows = await sql`SELECT * FROM accounts WHERE id = ${id} AND "ownerId" = ${ownerId}`;
   if (accountRows.length === 0) return null;
 
   const historyRows = await sql`
@@ -492,7 +510,7 @@ export async function freezeTermAccount(id: string): Promise<BankAccount | null>
   const restoredBalance = Math.max(0, current.balance - accruedBalance);
 
   await sql.transaction([
-    sql`UPDATE accounts SET balance = ${restoredBalance} WHERE id = ${id}`,
+    sql`UPDATE accounts SET balance = ${restoredBalance} WHERE id = ${id} AND "ownerId" = ${ownerId}`,
     sql`DELETE FROM yield_history WHERE "accountId" = ${id}`,
   ]);
 
@@ -542,10 +560,10 @@ export async function updateUserSettings(settings: Partial<UserSettings>): Promi
 // ---------------------------------------------------------------------------
 // Reset database (keeps users)
 // ---------------------------------------------------------------------------
-export async function resetDatabase(): Promise<void> {
+export async function resetDatabase(ownerId: string): Promise<void> {
   const sql = getSQL();
-  await sql`DELETE FROM accounts`;
-  await sql`DELETE FROM yield_history`;
+  await sql`DELETE FROM yield_history WHERE "ownerId" = ${ownerId}`;
+  await sql`DELETE FROM accounts WHERE "ownerId" = ${ownerId}`;
   await sql`DELETE FROM user_settings`;
   await sql`
     INSERT INTO user_settings (id, "satIsrRate", "applySofipoExemption", "umaValueAnnual", "expectedInflation")

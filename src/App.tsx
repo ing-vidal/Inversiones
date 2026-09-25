@@ -33,6 +33,7 @@ import {
   apiUpdateSettings,
   apiResetDatabase,
   AuthUser,
+  setActiveUserId,
 } from './services/api';
 
 const normalizeNuInstitution = (institution: BankInstitution): BankInstitution => {
@@ -436,10 +437,12 @@ export default function App() {
     setIsLoggedIn(false);
     setActiveTab('cuentas');
     setDbStatus('offline');
+    setActiveUserId(null);
   };
 
   const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
+    setActiveUserId(user.id);
     setIsLoggedIn(true);
     setIsLoading(true);
     loadDatabaseData();

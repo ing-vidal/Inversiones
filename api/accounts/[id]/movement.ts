@@ -12,6 +12,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await initDB();
+    const ownerId = req.headers['x-user-id'];
+    if (typeof ownerId !== 'string' || !ownerId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
     const id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
     if (!id) {
       return res.status(400).json({ error: 'Missing account ID' });
@@ -21,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (typeof amountDelta !== 'number') {
       return res.status(400).json({ error: 'amountDelta must be a number' });
     }
-    const updated = await updateAccountBalance(id, amountDelta);
+    const updated = await updateAccountBalance(id, amountDelta, ownerId);
     if (!updated) {
       return res.status(404).json({ error: 'Account not found' });
     }

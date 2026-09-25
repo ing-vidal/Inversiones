@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS institutions (
 
 CREATE TABLE IF NOT EXISTS accounts (
   id TEXT PRIMARY KEY,
+  "ownerId" TEXT,
   "institutionId" TEXT NOT NULL,
   "institutionName" TEXT NOT NULL,
   "accountNickname" TEXT NOT NULL,
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 CREATE TABLE IF NOT EXISTS yield_history (
   id TEXT PRIMARY KEY,
+  "ownerId" TEXT,
   "accountId" TEXT NOT NULL,
   "bankName" TEXT NOT NULL,
   "shortCode" TEXT NOT NULL,
@@ -80,5 +82,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS accounts_institution_id_idx
   ON accounts ("institutionId");
 
+CREATE INDEX IF NOT EXISTS accounts_owner_id_idx
+  ON accounts ("ownerId");
+
 CREATE INDEX IF NOT EXISTS yield_history_account_id_idx
   ON yield_history ("accountId");
+
+CREATE INDEX IF NOT EXISTS yield_history_owner_id_idx
+  ON yield_history ("ownerId");

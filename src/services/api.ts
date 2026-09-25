@@ -1,6 +1,15 @@
 import { BankAccount, BankInstitution, DailyYieldRecord, UserSettings } from '../types/finance.js';
 
 const BASE_URL = '/api';
+let activeUserId: string | null = null;
+
+export function setActiveUserId(userId: string | null): void {
+  activeUserId = userId;
+}
+
+function userHeaders(): HeadersInit {
+  return activeUserId ? { 'X-User-Id': activeUserId } : {};
+}
 
 export async function fetchHealth(): Promise<{ status: string; database: string } | null> {
   try {
@@ -51,7 +60,7 @@ export async function apiDeleteInstitution(id: string): Promise<boolean> {
 }
 
 export async function fetchAccounts(): Promise<BankAccount[]> {
-  const res = await fetch(`${BASE_URL}/accounts`);
+  const res = await fetch(`${BASE_URL}/accounts`, { headers: userHeaders() });
   if (!res.ok) throw new Error('Error al cargar cuentas bancarias desde la base de datos');
   return await res.json();
 }
@@ -59,7 +68,7 @@ export async function fetchAccounts(): Promise<BankAccount[]> {
 export async function apiCreateAccount(account: BankAccount): Promise<BankAccount> {
   const res = await fetch(`${BASE_URL}/accounts`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify(account),
   });
   if (!res.ok) throw new Error('Error al guardar cuenta en la base de datos');
@@ -69,7 +78,7 @@ export async function apiCreateAccount(account: BankAccount): Promise<BankAccoun
 export async function apiUpdateAccount(id: string, account: Partial<BankAccount>): Promise<BankAccount> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify(account),
   });
   if (!res.ok) throw new Error('Error al actualizar cuenta en la base de datos');
@@ -79,7 +88,7 @@ export async function apiUpdateAccount(id: string, account: Partial<BankAccount>
 export async function apiUpdateBalance(id: string, amountDelta: number): Promise<BankAccount> {
   const res = await fetch(`${BASE_URL}/accounts/${id}/movement`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify({ amountDelta }),
   });
   if (!res.ok) throw new Error('Error al actualizar saldo en la base de datos');
@@ -93,7 +102,7 @@ export async function apiAccrueAccount(
 ): Promise<BankAccount> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify({ action: 'accrue', records, totalDelta }),
   });
   if (!res.ok) throw new Error('Error al calcular rendimientos pendientes');
@@ -103,7 +112,7 @@ export async function apiAccrueAccount(
 export async function apiFreezeTermAccount(id: string): Promise<BankAccount> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify({ action: 'freeze-term' }),
   });
   if (!res.ok) throw new Error('Error al congelar saldo de plazo fijo');
@@ -113,6 +122,7 @@ export async function apiFreezeTermAccount(id: string): Promise<BankAccount> {
 export async function apiDeleteAccount(id: string): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/accounts/${id}`, {
     method: 'DELETE',
+    headers: userHeaders(),
   });
   if (!res.ok) throw new Error('Error al eliminar cuenta de la base de datos');
   const data = await res.json();
@@ -120,7 +130,7 @@ export async function apiDeleteAccount(id: string): Promise<boolean> {
 }
 
 export async function fetchYieldHistory(): Promise<DailyYieldRecord[]> {
-  const res = await fetch(`${BASE_URL}/history`);
+  const res = await fetch(`${BASE_URL}/history`, { headers: userHeaders() });
   if (!res.ok) throw new Error('Error al cargar historial desde la base de datos');
   return await res.json();
 }
@@ -128,7 +138,7 @@ export async function fetchYieldHistory(): Promise<DailyYieldRecord[]> {
 export async function apiCreateYieldRecord(record: DailyYieldRecord): Promise<DailyYieldRecord> {
   const res = await fetch(`${BASE_URL}/history`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify(record),
   });
   if (!res.ok) throw new Error('Error al registrar rendimiento en la base de datos');
@@ -141,7 +151,7 @@ export async function apiUpdateYieldRecordBalance(
 ): Promise<DailyYieldRecord> {
   const res = await fetch(`${BASE_URL}/history?id=${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify({ balanceAtTime }),
   });
   if (!res.ok) throw new Error('Error al actualizar saldo del historial');
@@ -154,7 +164,7 @@ export async function apiUpdateYieldRecord(
 ): Promise<DailyYieldRecord> {
   const res = await fetch(`${BASE_URL}/history?id=${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...userHeaders() },
     body: JSON.stringify(changes),
   });
   if (!res.ok) throw new Error('Error al actualizar el registro del historial');
@@ -184,6 +194,7 @@ export async function apiResetDatabase(): Promise<{
 }> {
   const res = await fetch(`${BASE_URL}/reset`, {
     method: 'POST',
+    headers: userHeaders(),
   });
   if (!res.ok) throw new Error('Error al reiniciar base de datos');
   return await res.json();

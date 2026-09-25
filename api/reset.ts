@@ -12,10 +12,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await initDB();
-    await resetDatabase();
+    const ownerId = req.headers['x-user-id'];
+    if (typeof ownerId !== 'string' || !ownerId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+    await resetDatabase(ownerId);
     const [accounts, history, settings] = await Promise.all([
-      getAccounts(),
-      getYieldHistory(),
+      getAccounts(ownerId),
+      getYieldHistory(ownerId),
       getUserSettings(),
     ]);
 
