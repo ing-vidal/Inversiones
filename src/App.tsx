@@ -136,6 +136,7 @@ export default function App() {
             sofipoExemptionLimit: activeSettings.umaValueAnnual,
             roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
           });
+          const balanceAfterYield = runningBalance + yieldCalc.netDaily;
           const recordDate = new Date(recordTimestamp);
           const pendingRecord: DailyYieldRecord = {
             id: `y-${account.id}-${recordTimestamp}`,
@@ -149,11 +150,11 @@ export default function App() {
             grossYield: yieldCalc.grossDaily,
             isrWithheld: yieldCalc.isrDaily,
             netYield: yieldCalc.netDaily,
-            balanceAtTime: runningBalance,
+            balanceAtTime: balanceAfterYield,
             createdAt: recordTimestamp,
           };
           pendingRecords.push(pendingRecord);
-          runningBalance += yieldCalc.netDaily;
+          runningBalance = balanceAfterYield;
         }
 
         const updated = await apiAccrueAccount(
