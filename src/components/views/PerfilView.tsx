@@ -346,7 +346,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           Parámetros Fiscales y SAT México
         </h4>
 
-        <div className="rounded-2xl border border-[#dfe8ff] bg-gradient-to-br from-[#f8fbff] to-[#eef7f3] p-4 shadow-[0_10px_25px_rgba(11,28,48,0.04)]">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#006c49]/10 text-[#006c49]">
@@ -362,14 +362,14 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             <button
               type="button"
               onClick={resetInstitutionForm}
-              className="rounded-full border border-[#dbe7ff] bg-white px-3 py-1.5 font-hanken text-[11px] font-semibold text-[#006c49] hover:bg-[#f0faf5]"
+              className="rounded-full border border-[#45d9ff]/50 bg-[#45d9ff]/10 px-4 py-2 font-hanken text-[13px] font-semibold text-[#45d9ff] hover:bg-[#45d9ff]/20"
             >
               {editingInstitutionId ? 'Cancelar edición' : 'Nueva'}
             </button>
           </div>
 
-          <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-inner">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="border-t border-[#29435d]/70 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&_input]:min-h-12 [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_select]:min-h-12 [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm">
               <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
                 Nombre
                 <input
@@ -544,7 +544,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                 <div className="mb-2 font-hanken text-[11px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
                   Reglas de cálculo
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 [&_input]:min-h-12 [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_select]:min-h-12 [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm">
                   <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
                     ISR anual %
                     <input
@@ -596,7 +596,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
               <button
                 type="button"
                 onClick={handleInstitutionSubmit}
-                className="w-full rounded-xl bg-[#006c49] px-4 py-2.5 font-hanken text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#005a3c]"
+                className="neon-rate-badge w-full rounded-xl px-4 py-3 font-hanken text-[14px] font-bold shadow-sm transition"
               >
                 {editingInstitutionId ? 'Guardar institución' : 'Agregar institución'}
               </button>
