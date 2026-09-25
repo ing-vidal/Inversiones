@@ -288,7 +288,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-[18px]">
-                    lock_check
+                    lock
                   </span>
                   <input
                     id="reg-confirm"
@@ -297,7 +297,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
                     placeholder="Repite la contraseña"
                     value={regConfirm}
                     onChange={(e) => setRegConfirm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl font-hanken text-[14px] text-[#0b1c30] outline-none focus:border-[#006c49] focus:ring-2 focus:ring-[#006c49]/10 transition-all placeholder:text-[#94a3b8]"
+                    className="w-full pl-10 pr-4 py-3 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl font-hanken text-[14px] text-[#0b1c30] outline-none focus:border-[#006c49] focus:ring-2 focus:ring-[#006c49]/10 transition-all placeholder:text-[#91a5bc]"
                   />
                 </div>
               </div>
