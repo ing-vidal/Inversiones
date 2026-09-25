@@ -40,6 +40,9 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   const [projectionMonthDays, setProjectionMonthDays] = useState<number>(settings.projectionMonthDays);
   const [projectionYearDays, setProjectionYearDays] = useState<number>(settings.projectionYearDays);
   const [savedNotice, setSavedNotice] = useState<boolean>(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState<
+    { action: 'save-preferences' } | { action: 'delete-institution'; institution: BankInstitution } | null
+  >(null);
   const [institutionError, setInstitutionError] = useState('');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
@@ -118,17 +121,29 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   };
 
   const handleSave = () => {
-    onUpdateSettings({
-      ...settings,
-      satIsrRate: satRatePercent / 100,
-      expectedInflation: inflationPercent / 100,
-      applySofipoExemption: applyExemption,
-      umaValueAnnual: umaLimit,
-      projectionMonthDays,
-      projectionYearDays,
-    });
-    setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 2000);
+    setPendingConfirmation({ action: 'save-preferences' });
+  };
+
+  const confirmPendingAction = () => {
+    if (!pendingConfirmation) return;
+
+    if (pendingConfirmation.action === 'delete-institution') {
+      onDeleteInstitution(pendingConfirmation.institution.id);
+    } else {
+      onUpdateSettings({
+        ...settings,
+        satIsrRate: satRatePercent / 100,
+        expectedInflation: inflationPercent / 100,
+        applySofipoExemption: applyExemption,
+        umaValueAnnual: umaLimit,
+        projectionMonthDays,
+        projectionYearDays,
+      });
+      setSavedNotice(true);
+      setTimeout(() => setSavedNotice(false), 2000);
+    }
+
+    setPendingConfirmation(null);
   };
 
   const resetInstitutionForm = () => {
@@ -642,12 +657,12 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
         )}
 
         {activeSection === 'administrar' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
               <h5 className="font-space font-semibold text-[15px] text-[#0b1c30]">Instituciones registradas</h5>
               <span className="font-hanken text-[12px] text-[#45d9ff]">{institutions.length} en total</span>
             </div>
-            <div className="flex flex-col gap-2 max-h-[60vh] overflow-auto pr-1">
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-auto pr-1">
             {institutions.length === 0 && (
               <div className="rounded-xl border border-dashed border-[#cfe0ff] bg-white/80 px-3 py-3 text-center text-[12px] text-[#45464d]">
                 No hay instituciones agregadas.
@@ -656,32 +671,31 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
             {institutions.map((inst) => (
               <div
                 key={inst.id}
-                className="flex items-center justify-between gap-2 rounded-xl border border-[#e2e8f0] bg-white p-2.5 shadow-sm"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-[#45d9ff]/20 bg-[#0d1726] p-3 sm:p-4 shadow-[0_8px_24px_rgba(0,0,0,0.16)]"
               >
-                <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex min-w-0 items-center gap-3">
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border border-white text-[10px] font-bold ${inst.badgeBg} ${inst.badgeText}`}
-                    style={{ backgroundColor: inst.color, opacity: 0.12 }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#45d9ff]/30 bg-[#45d9ff]/10 font-space text-[12px] font-bold text-[#45d9ff]"
                   >
                     {inst.shortName.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate font-hanken text-[12px] font-semibold text-[#0b1c30]">{inst.name}</div>
-                    <div className="truncate font-hanken text-[10px] text-[#45464d]">{inst.shortName} · {inst.rate}%</div>
+                    <div className="truncate font-space text-[14px] font-semibold text-[#eef4f1]">{inst.name}</div>
+                    <div className="truncate font-hanken text-[12px] text-[#91a5bc]">{inst.shortName} · {inst.rate}%</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
                     onClick={() => startEditInstitution(inst)}
-                    className="rounded-md bg-[#eff4ff] px-2 py-1 text-[10px] font-medium text-[#0b1c30]"
+                    className="rounded-lg border border-[#45d9ff]/35 bg-[#45d9ff]/10 px-3 py-2 font-space text-[12px] font-semibold text-[#45d9ff] transition hover:bg-[#45d9ff]/20"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    onClick={() => onDeleteInstitution(inst.id)}
-                    className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600"
+                    onClick={() => setPendingConfirmation({ action: 'delete-institution', institution: inst })}
+                    className="rounded-lg border border-[#ff6b8a]/35 bg-[#ff6b8a]/10 px-3 py-2 font-space text-[12px] font-semibold text-[#ff8da5] transition hover:bg-[#ff6b8a]/20"
                   >
                     Eliminar
                   </button>
@@ -693,7 +707,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
         )}
 
         {activeSection === 'preferencias' && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
         {/* SAT ISR Rate */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
@@ -729,7 +743,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
         </div>
 
         {/* SOFIPO exemption settings */}
-        <div className="flex flex-col gap-3 pt-3 border-t border-slate-100">
+        <div className="flex flex-col gap-4 pt-5 border-t border-[#29435d]/70">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col pr-2">
               <span className="font-hanken text-[13px] font-semibold text-[#0b1c30]">
@@ -770,7 +784,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
         </div>
 
         {/* Inflation rate for GAT Real */}
-        <div className="flex flex-col gap-1.5 pt-3 border-t border-slate-100">
+        <div className="flex flex-col gap-2.5 pt-5 border-t border-[#29435d]/70">
           <div className="flex items-center justify-between">
             <label className="font-hanken text-[12px] font-semibold text-[#0b1c30]">
               Inflación Estimada (para cálculo GAT Real)
@@ -790,7 +804,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           />
         </div>
 
-        <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
+        <div className="flex flex-col gap-4 pt-5 border-t border-[#29435d]/70">
           <div>
             <div className="font-hanken text-[12px] font-semibold text-[#0b1c30]">
               Horizontes de proyección
@@ -799,7 +813,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
               Define cuántos días usar para comparar periodos cortos y anuales. No cambia las condiciones de tus instituciones.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1 font-hanken text-[11px] font-semibold text-[#45464d]">
               Proyección corta (días)
               <input
@@ -830,13 +844,53 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
         <button
           onClick={handleSave}
           type="button"
-          className="w-full mt-2 py-3 bg-[#0b1c30] text-white rounded-xl font-hanken text-[13px] font-semibold hover:bg-[#131b2e] transition-colors shadow-xs"
+          className="neon-rate-badge w-full mt-2 min-h-14 rounded-xl px-4 py-4 font-space text-[15px] font-bold transition"
         >
           {savedNotice ? '¡Preferencias guardadas!' : 'Guardar preferencias'}
         </button>
         </div>
         )}
       </div>
+
+      {pendingConfirmation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="profile-confirmation-title" className="w-full max-w-md rounded-2xl border border-[#45d9ff]/40 bg-[#101d31] p-5 shadow-[0_0_36px_rgba(69,217,255,0.18)] sm:p-6">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="material-symbols-outlined text-[26px] text-[#45d9ff]" aria-hidden="true">
+                {pendingConfirmation.action === 'delete-institution' ? 'delete' : 'save'}
+              </span>
+              <div>
+                <h3 id="profile-confirmation-title" className="font-space text-[18px] font-semibold text-white">
+                  {pendingConfirmation.action === 'delete-institution' ? '¿Eliminar institución?' : '¿Guardar preferencias?'}
+                </h3>
+                <p className="mt-2 font-hanken text-[14px] leading-relaxed text-[#a9b7ca]">
+                  {pendingConfirmation.action === 'delete-institution'
+                    ? `Se eliminará ${pendingConfirmation.institution.name}. Esta acción no se puede deshacer.`
+                    : 'Se guardarán tus preferencias fiscales y horizontes de proyección en la base de datos.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingConfirmation(null)}
+                className="min-h-11 rounded-xl border border-[#29435d] px-4 py-2 font-space text-[13px] font-semibold text-[#bec6e0] transition hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmPendingAction}
+                className={pendingConfirmation.action === 'delete-institution'
+                  ? 'min-h-11 rounded-xl border border-[#ff6b8a]/60 bg-[#ff6b8a]/15 px-4 py-2 font-space text-[13px] font-bold text-[#ff8da5] transition hover:bg-[#ff6b8a]/25'
+                  : 'neon-rate-badge min-h-11 rounded-xl px-4 py-2 font-space text-[13px] font-bold transition'}
+              >
+                {pendingConfirmation.action === 'delete-institution' ? 'Sí, eliminar' : 'Sí, guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
