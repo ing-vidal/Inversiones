@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateTermProgress, calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -828,9 +828,15 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                   .filter((record) => record.accountId === acc.id)
                   .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]
                 : undefined;
-              const maturityAmount = acc.paymentFrequency === 'vencimiento'
-                ? acc.balance * (1 + acc.nominalRate / 100)
-                : 0;
+              const termProgress = acc.paymentFrequency === 'vencimiento'
+                ? calculateTermProgress({
+                  balance: acc.balance,
+                  nominalRate: acc.nominalRate,
+                  base: acc.baseDivisor,
+                  startDate: acc.startDate,
+                  endDate: acc.endDate,
+                })
+                : undefined;
               const maturityDate = acc.endDate
                 ? new Date(`${acc.endDate}T00:00:00`).toLocaleDateString('es-MX', {
                   day: 'numeric',
@@ -909,16 +915,21 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                         isMifelAccount
                           ? latestRecord?.grossYield ?? res.grossDaily
                           : acc.paymentFrequency === 'vencimiento'
-                          ? maturityAmount
+                          ? termProgress?.maturityAmount ?? acc.balance
                           : res.netDaily,
                         { showSign: acc.paymentFrequency !== 'vencimiento' }
                       )}{' '}
                       MXN
                     </span>
                     {acc.paymentFrequency === 'vencimiento' && maturityDate && (
-                      <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
-                        Al finalizar: {maturityDate}
-                      </span>
+                      <>
+                        <span className="font-hanken text-[10px] text-[#006c49] whitespace-nowrap">
+                          Ganado a la fecha: {formatMXN(termProgress?.accruedInterest ?? 0)}
+                        </span>
+                        <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
+                          Al finalizar: {maturityDate}
+                        </span>
+                      </>
                     )}
                     {isMifelAccount && (
                       <span className="font-hanken text-[10px] text-[#b4534b] whitespace-nowrap">

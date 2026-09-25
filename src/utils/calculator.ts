@@ -56,6 +56,37 @@ export function isSofipoInstitution(institutionId: string): boolean {
   return SOFIPO_INSTITUTION_IDS.has(institutionId);
 }
 
+export function calculateTermProgress(params: {
+  balance: number;
+  nominalRate: number;
+  base: DivisorBase;
+  startDate?: string;
+  endDate?: string;
+  now?: number;
+}) {
+  const { balance, nominalRate, base, startDate, endDate, now = Date.now() } = params;
+  if (!startDate || !endDate) {
+    return { accruedInterest: 0, totalInterest: 0, maturityAmount: balance, elapsedDays: 0, totalDays: 0 };
+  }
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const today = new Date(now);
+  const day = 24 * 60 * 60 * 1000;
+  const totalDays = Math.max(0, Math.round((end.getTime() - start.getTime()) / day));
+  const elapsedDays = Math.min(totalDays, Math.max(0, Math.floor((today.getTime() - start.getTime()) / day)));
+  const dailyInterest = (balance * (nominalRate / 100)) / base;
+  const totalInterest = dailyInterest * totalDays;
+
+  return {
+    accruedInterest: dailyInterest * elapsedDays,
+    totalInterest,
+    maturityAmount: balance + totalInterest,
+    elapsedDays,
+    totalDays,
+  };
+}
+
 export interface CalculationResult {
   monto: number;
   grossDaily: number;
