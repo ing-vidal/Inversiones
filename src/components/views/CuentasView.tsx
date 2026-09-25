@@ -184,6 +184,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       isDualTier: curr.isDualTier,
       dualThreshold: curr.dualThreshold,
       dualRate2: curr.dualRate2,
+      satRate: getInstitutionSatRate(curr.institutionId, curr.institutionName, curr.shortCode, settings.satIsrRate || SAT_ISR_DEFAULT),
+      isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(curr.institutionId),
+      sofipoExemptionLimit: settings.umaValueAnnual,
       roundDailyDown: isOpenBankInstitution(curr.institutionId, curr.institutionName, curr.shortCode) || isDidiInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
     });
     return acc + res.netDaily;
@@ -816,7 +819,8 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           {/* Grid de cuentas en desktop */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* List of active accounts */}
-          {accounts.map((acc) => {
+            {accounts.map((acc) => {
+            const isMifelAccount = acc.institutionName.toLowerCase().includes('mifel');
             const res = calculateYield({
               monto: acc.balance,
               tasaNominal: acc.nominalRate,
@@ -826,6 +830,9 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               isDualTier: acc.isDualTier,
               dualThreshold: acc.dualThreshold,
               dualRate2: acc.dualRate2,
+              satRate: getInstitutionSatRate(acc.institutionId, acc.institutionName, acc.shortCode, settings.satIsrRate || SAT_ISR_DEFAULT),
+              isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(acc.institutionId),
+              sofipoExemptionLimit: settings.umaValueAnnual,
               roundDailyDown: isOpenBankInstitution(acc.institutionId, acc.institutionName, acc.shortCode) || isDidiInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
             });
 
@@ -876,17 +883,26 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     <span className="font-hanken text-[11px] text-[#45464d]">
                       {acc.paymentFrequency === 'vencimiento'
                         ? 'Interés al cobrar'
+                        : isMifelAccount
+                        ? 'Intereses'
                         : 'Abono de hoy'}
                     </span>
                     <span className="font-space text-[19px] font-bold text-[#006c49]">
                       {formatMXN(
-                        acc.paymentFrequency === 'vencimiento'
+                        isMifelAccount
+                          ? res.grossDaily
+                          : acc.paymentFrequency === 'vencimiento'
                           ? res.netDaily * (acc.daysRemaining || 28)
                           : res.netDaily,
                         { showSign: true }
                       )}{' '}
                       MXN
                     </span>
+                    {isMifelAccount && (
+                      <span className="font-hanken text-[10px] text-[#b4534b] whitespace-nowrap">
+                        ISR retenido: -${res.isrDaily.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
