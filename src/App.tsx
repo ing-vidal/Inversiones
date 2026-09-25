@@ -13,7 +13,7 @@ import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
 import { AdminView } from './components/views/AdminView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, getInstitutionSatRate, isDidiInstitution, isMifelInstitution, isNuInstitution, isSofipoInstitution } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -22,13 +22,13 @@ import {
   apiDeleteInstitution,
   fetchAccounts,
   apiCreateAccount,
+  apiUpdateAccount,
   apiUpdateBalance,
   apiAccrueAccount,
   apiFreezeTermAccount,
   apiDeleteAccount,
   fetchYieldHistory,
   apiCreateYieldRecord,
-  apiUpdateYieldRecord,
   apiUpdateYieldRecordBalance,
   fetchSettings,
   apiUpdateSettings,
@@ -37,56 +37,20 @@ import {
   setActiveUserId,
 } from './services/api';
 
-const normalizeNuInstitution = (institution: BankInstitution): BankInstitution => {
-  if (!isNuInstitution(institution.id, institution.name, institution.shortName)) return institution;
-
-  return {
-    ...institution,
-    rate: 13,
-    defaultBase: 360,
-    hasDualTier: false,
-    dualThreshold: undefined,
-    dualRate2: undefined,
-  };
-};
-
-const normalizeNuAccount = (account: BankAccount): BankAccount => {
-  if (!isNuInstitution(account.institutionId, account.institutionName, account.shortCode)) return account;
-
-  return {
-    ...account,
-    nominalRate: 13,
-    baseDivisor: 360,
-    isDualTier: false,
-    dualThreshold: undefined,
-    dualRate2: undefined,
-    deductISR: false,
-  };
-};
-
-const normalizeAccount = (account: BankAccount): BankAccount => {
-  const normalized = normalizeNuAccount(account);
-  if (!isMifelInstitution(normalized.institutionId, normalized.institutionName, normalized.shortCode)) {
-    return normalized;
-  }
-
-  return { ...normalized, deductISR: false };
-};
-
 const calculateAccountYield = (account: BankAccount, balance: number, settings: UserSettings) => calculateYield({
   monto: balance,
   tasaNominal: account.nominalRate,
   base: account.baseDivisor,
   isCompound: account.isCompound,
-  deductISR: account.deductISR,
+  deductISR: account.isrMode ? account.isrMode === 'deduct' : account.deductISR,
   isDualTier: account.isDualTier,
   dualThreshold: account.dualThreshold,
   dualRate2: account.dualRate2,
-  satRate: getInstitutionSatRate(account.institutionId, account.institutionName, account.shortCode, settings.satIsrRate),
-  isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(account.institutionId),
+  isrRate: account.isrRate ?? settings.satIsrRate,
+  isrMode: account.isrMode,
+  isSofipoExempt: settings.applySofipoExemption && account.isrExempt === true,
   sofipoExemptionLimit: settings.umaValueAnnual,
-  roundDailyDown: isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
-  showISRSeparately: isMifelInstitution(account.institutionId, account.institutionName, account.shortCode),
+  roundingMode: account.roundingMode,
 });
 
 function MainApp() {
@@ -142,13 +106,13 @@ function MainApp() {
         return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
       };
       const accruedRecords: DailyYieldRecord[] = [];
-      const updatedAccounts = (dbAccounts || []).map(normalizeAccount);
+      const updatedAccounts = dbAccounts || [];
 
       for (const account of updatedAccounts) {
         if (account.paymentFrequency === 'vencimiento') {
           const updated = await apiFreezeTermAccount(account.id);
           const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
-          if (accountIndex >= 0) updatedAccounts[accountIndex] = normalizeAccount(updated);
+          if (accountIndex >= 0) updatedAccounts[accountIndex] = updated;
           for (let index = dbHistory.length - 1; index >= 0; index -= 1) {
             if (dbHistory[index].accountId === account.id) dbHistory.splice(index, 1);
           }
@@ -164,30 +128,6 @@ function MainApp() {
         );
         const latestRecord = accountRecords[0];
         if (elapsedDays <= 0) {
-          const isMifelRecordWithoutIsr = latestRecord
-            && isMifelInstitution(account.institutionId, account.institutionName, account.shortCode)
-            && latestRecord.isrWithheld === 0;
-
-          if (isMifelRecordWithoutIsr) {
-            const balanceBeforeYield = latestRecord.balanceAtTime - latestRecord.netYield;
-            const correctedYield = calculateAccountYield(account, balanceBeforeYield, activeSettings);
-            const correctedBalance = balanceBeforeYield + correctedYield.netDaily;
-            const correctedRecord = await apiUpdateYieldRecord(latestRecord.id, {
-              grossYield: correctedYield.grossDaily,
-              isrWithheld: correctedYield.isrDaily,
-              netYield: correctedYield.netDaily,
-              balanceAtTime: correctedBalance,
-            });
-            const historyIndex = dbHistory.findIndex((record) => record.id === correctedRecord.id);
-            if (historyIndex >= 0) dbHistory[historyIndex] = correctedRecord;
-            if (Math.abs(correctedBalance - account.balance) >= 0.01) {
-              const updated = await apiUpdateBalance(account.id, correctedBalance - account.balance);
-              const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
-              if (accountIndex >= 0) updatedAccounts[accountIndex] = normalizeAccount(updated);
-            }
-            continue;
-          }
-
           const expectedBalance = latestRecord
             ? latestRecord.balanceAtTime + latestRecord.netYield
             : account.balance;
@@ -236,15 +176,15 @@ function MainApp() {
           runningBalance - account.balance,
         );
         const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
-        if (accountIndex >= 0) updatedAccounts[accountIndex] = normalizeAccount(updated);
+        if (accountIndex >= 0) updatedAccounts[accountIndex] = updated;
         accruedRecords.push(...pendingRecords);
       }
 
       if (dbInstitutions && dbInstitutions.length > 0) {
-        setInstitutions(dbInstitutions.map(normalizeNuInstitution));
+        setInstitutions(dbInstitutions);
       }
       if (dbAccounts) {
-        setAccounts(updatedAccounts.map(normalizeAccount));
+        setAccounts(updatedAccounts);
       }
       if (dbHistory) {
         setHistory([...accruedRecords.reverse(), ...dbHistory]);
@@ -277,15 +217,15 @@ function MainApp() {
       tasaNominal: newAcc.nominalRate,
       base: newAcc.baseDivisor,
       isCompound: newAcc.isCompound,
-      deductISR: newAcc.deductISR,
+      deductISR: newAcc.isrMode ? newAcc.isrMode === 'deduct' : newAcc.deductISR,
       isDualTier: newAcc.isDualTier,
       dualThreshold: newAcc.dualThreshold,
       dualRate2: newAcc.dualRate2,
-      satRate: getInstitutionSatRate(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode, settings.satIsrRate),
-      isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
+      isrRate: newAcc.isrRate ?? settings.satIsrRate,
+      isrMode: newAcc.isrMode,
+      isSofipoExempt: settings.applySofipoExemption && newAcc.isrExempt === true,
       sofipoExemptionLimit: settings.umaValueAnnual,
-      roundDailyDown: isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
-      showISRSeparately: isMifelInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
+      roundingMode: newAcc.roundingMode,
     });
 
     const newRecord: DailyYieldRecord = {
@@ -338,6 +278,23 @@ function MainApp() {
       setDbStatus('connected');
     } catch (error) {
       console.error('Error al eliminar de la base de datos:', error);
+      setDbStatus('offline');
+    }
+  };
+
+  const handleUpdateAccount = async (id: string, changes: Partial<BankAccount>) => {
+    const current = accounts.find((account) => account.id === id);
+    if (!current) return;
+    const optimistic = { ...current, ...changes };
+    setAccounts((prev) => prev.map((account) => account.id === id ? optimistic : account));
+    try {
+      setDbStatus('syncing');
+      const updated = await apiUpdateAccount(id, changes);
+      setAccounts((prev) => prev.map((account) => account.id === id ? updated : account));
+      setDbStatus('connected');
+    } catch (error) {
+      setAccounts((prev) => prev.map((account) => account.id === id ? current : account));
+      console.error('Error al actualizar cuenta:', error);
       setDbStatus('offline');
     }
   };
@@ -422,7 +379,7 @@ function MainApp() {
     try {
       setDbStatus('syncing');
       const res = await apiResetDatabase();
-      setAccounts(res.accounts.map(normalizeAccount));
+      setAccounts(res.accounts);
       setHistory(res.history);
       setSettings(res.settings);
       setDbStatus('connected');
@@ -498,6 +455,7 @@ function MainApp() {
                 settings={settings}
                 institutions={institutions}
                 onSaveAccount={handleSaveAccount}
+                onUpdateAccount={handleUpdateAccount}
                 onDeleteAccount={handleDeleteAccount}
                 onDepositWithdraw={handleDepositWithdraw}
                 onOpenProfile={() => setActiveTab('perfil')}

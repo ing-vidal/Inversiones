@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { BankInstitution, UserSettings } from '../../types/finance';
-import { isNuInstitution } from '../../utils/calculator';
+import { BankInstitution, IsrMode, RoundingMode, UserSettings } from '../../types/finance';
 import { AuthUser, apiUpdateAvatar } from '../../services/api';
 
 interface PerfilViewProps {
@@ -31,6 +30,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   const [satRatePercent, setSatRatePercent] = useState<number>(settings.satIsrRate * 100);
   const [inflationPercent, setInflationPercent] = useState<number>(settings.expectedInflation * 100);
   const [applyExemption, setApplyExemption] = useState<boolean>(settings.applySofipoExemption);
+  const [umaLimit, setUmaLimit] = useState<number>(settings.umaValueAnnual);
   const [savedNotice, setSavedNotice] = useState<boolean>(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
@@ -45,6 +45,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
     hasDualTier: false,
     dualThreshold: '10000',
     dualRate2: '7',
+    isrRate: '0.50',
+    isrMode: 'deduct' as IsrMode,
+    isrExempt: false,
+    roundingMode: 'normal' as RoundingMode,
     color: '#006c49',
     badgeBg: 'bg-[#006c49]/15',
     badgeText: 'text-[#006c49]',
@@ -106,6 +110,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       satIsrRate: satRatePercent / 100,
       expectedInflation: inflationPercent / 100,
       applySofipoExemption: applyExemption,
+      umaValueAnnual: umaLimit,
     });
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 2000);
@@ -123,6 +128,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       hasDualTier: false,
       dualThreshold: '10000',
       dualRate2: '7',
+      isrRate: '0.50',
+      isrMode: 'deduct',
+      isrExempt: false,
+      roundingMode: 'normal',
       color: '#006c49',
       badgeBg: 'bg-[#006c49]/15',
       badgeText: 'text-[#006c49]',
@@ -133,21 +142,24 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   };
 
   const handleInstitutionSubmit = () => {
-    const isNu = isNuInstitution(editingInstitutionId || institutionForm.id, institutionForm.name, institutionForm.shortName);
     const payload: BankInstitution = {
       id: editingInstitutionId || `inst-${Date.now()}`,
       name: institutionForm.name.trim(),
       shortName: institutionForm.shortName.trim() || institutionForm.name.trim(),
-      rate: isNu ? 13 : Number(institutionForm.rate),
-      defaultBase: isNu ? 360 : institutionForm.defaultBase,
+      rate: Number(institutionForm.rate),
+      defaultBase: institutionForm.defaultBase,
       defaultFreq: institutionForm.defaultFreq,
-      hasDualTier: isNu ? false : institutionForm.hasDualTier,
-      dualThreshold: isNu ? undefined : institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
-      dualRate2: isNu ? undefined : institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
+      hasDualTier: institutionForm.hasDualTier,
+      dualThreshold: institutionForm.hasDualTier ? Number(institutionForm.dualThreshold) : undefined,
+      dualRate2: institutionForm.hasDualTier ? Number(institutionForm.dualRate2) : undefined,
+      isrRate: Number(institutionForm.isrRate) / 100,
+      isrMode: institutionForm.isrMode,
+      isrExempt: institutionForm.isrExempt,
+      roundingMode: institutionForm.roundingMode,
       color: institutionForm.color,
       badgeBg: institutionForm.badgeBg,
       badgeText: institutionForm.badgeText,
-      category: isNu ? 'banco' : institutionForm.category,
+      category: institutionForm.category,
       gatNominal: Number(institutionForm.gatNominal),
       gatReal: Number(institutionForm.gatReal),
     };
@@ -164,34 +176,7 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
   };
 
   const handleInstitutionNameChange = (name: string) => {
-    const normalizedName = name.toLowerCase().replace(/\s/g, '');
-    const isOpenBank = normalizedName.includes('openbank');
-    const isKubo = normalizedName.includes('kubo');
-
-    setInstitutionForm((current) => ({
-      ...current,
-      name,
-      ...(isOpenBank && !editingInstitutionId
-        ? {
-            rate: '13',
-            defaultBase: 360,
-            defaultFreq: 'diario' as const,
-            hasDualTier: true,
-            dualThreshold: '30000',
-            dualRate2: '7',
-            category: 'banco' as const,
-          }
-        : {}),
-      ...(isKubo && !editingInstitutionId
-        ? {
-            rate: '10',
-            defaultBase: 360,
-            defaultFreq: 'vencimiento' as const,
-            hasDualTier: false,
-            category: 'sofipo' as const,
-          }
-        : {}),
-    }));
+    setInstitutionForm((current) => ({ ...current, name }));
   };
 
   const startEditInstitution = (inst: BankInstitution) => {
@@ -206,6 +191,10 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
       hasDualTier: inst.hasDualTier,
       dualThreshold: String(inst.dualThreshold ?? 10000),
       dualRate2: String(inst.dualRate2 ?? 7),
+      isrRate: String((inst.isrRate ?? settings.satIsrRate) * 100),
+      isrMode: inst.isrMode ?? 'deduct',
+      isrExempt: inst.isrExempt ?? false,
+      roundingMode: inst.roundingMode ?? 'normal',
       color: inst.color,
       badgeBg: inst.badgeBg,
       badgeText: inst.badgeText,
@@ -447,6 +436,57 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
                   </label>
                 </>
               )}
+
+              <div className="sm:col-span-2 mt-1 border-t border-[#e6edf8] pt-3">
+                <div className="mb-2 font-hanken text-[11px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                  Reglas de cálculo
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    ISR anual %
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={institutionForm.isrRate}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, isrRate: e.target.value })}
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none focus:border-[#006c49] focus:bg-white"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Aplicación del ISR
+                    <select
+                      value={institutionForm.isrMode}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, isrMode: e.target.value as IsrMode })}
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none focus:border-[#006c49] focus:bg-white"
+                    >
+                      <option value="none">No aplicar</option>
+                      <option value="deduct">Descontar del rendimiento</option>
+                      <option value="separate">Mostrar por separado</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#45464d]">
+                    Redondeo
+                    <select
+                      value={institutionForm.roundingMode}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, roundingMode: e.target.value as RoundingMode })}
+                      className="rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[12px] font-hanken text-[#0b1c30] outline-none focus:border-[#006c49] focus:bg-white"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="truncate-total">Truncar total</option>
+                      <option value="truncate-tier">Truncar cada tramo</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-[#dfe8ff] bg-[#f9fbff] px-3 py-2 text-[11px] font-hanken text-[#0b1c30]">
+                    <input
+                      type="checkbox"
+                      checked={institutionForm.isrExempt}
+                      onChange={(e) => setInstitutionForm({ ...institutionForm, isrExempt: e.target.checked })}
+                      className="h-4 w-4 accent-[#006c49]"
+                    />
+                    Exento hasta límite SOFIPO
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-2">
@@ -539,24 +579,44 @@ export const PerfilView: React.FC<PerfilViewProps> = ({
           </div>
         </div>
 
-        {/* Sofipo 5 UMA Exemption Switch */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-3">
-          <div className="flex flex-col pr-2">
-            <span className="font-hanken text-[13px] font-semibold text-[#0b1c30]">
-              Exención SOFIPO (5 UMAs anuales)
-            </span>
-            <span className="font-hanken text-[11px] text-[#45464d]">
-              Exentar de ISR los primeros $206,367 MXN en SOFIPOs autorizadas
-            </span>
+        {/* SOFIPO exemption settings */}
+        <div className="flex flex-col gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col pr-2">
+              <span className="font-hanken text-[13px] font-semibold text-[#0b1c30]">
+                Exención fiscal SOFIPO
+              </span>
+              <span className="font-hanken text-[11px] text-[#45464d]">
+                Aplicar el límite anual de capital exento de ISR a instituciones marcadas como SOFIPO.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={applyExemption}
+                onChange={(e) => setApplyExemption(e.target.checked)}
+                className="sr-only peer"
+                aria-label="Aplicar exención fiscal SOFIPO"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006c49]"></div>
+            </label>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={applyExemption}
-              onChange={(e) => setApplyExemption(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006c49]"></div>
+          <label className="flex flex-col gap-1.5 font-hanken text-[11px] font-semibold text-[#45464d]">
+            Límite anual de capital exento
+            <div className="relative flex items-center">
+              <span className="absolute left-3 font-space text-[14px] text-[#45464d]">$</span>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={umaLimit}
+                onChange={(e) => setUmaLimit(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full rounded-lg border border-[#dfe8ff] bg-[#f9fbff] py-2 pl-7 pr-14 font-space text-[14px] font-bold text-[#0b1c30] outline-none focus:border-[#006c49]"
+                aria-label="Límite anual de capital exento de ISR en MXN"
+              />
+              <span className="absolute right-3 font-hanken text-[11px] text-[#45464d]">MXN</span>
+            </div>
+            <span className="font-normal text-[#76777d]">Se guarda junto con tus preferencias fiscales.</span>
           </label>
         </div>
 

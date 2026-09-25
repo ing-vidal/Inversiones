@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BankAccount } from '../../types/finance';
-import { calculateYield, formatMXN, getInstitutionSatRate, isDidiInstitution, isMifelInstitution, isSofipoInstitution, SOFIPO_EXEMPTION_LIMIT } from '../../utils/calculator';
+import { calculateYield, formatMXN } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface InicioViewProps {
@@ -29,15 +29,15 @@ export const InicioView: React.FC<InicioViewProps> = ({
         tasaNominal: a.nominalRate,
         base: a.baseDivisor,
         isCompound: a.isCompound,
-        deductISR: a.deductISR,
+        deductISR: a.isrMode ? a.isrMode === 'deduct' : a.deductISR,
         isDualTier: a.isDualTier,
         dualThreshold: a.dualThreshold,
         dualRate2: a.dualRate2,
-        satRate: getInstitutionSatRate(a.institutionId, a.institutionName, a.shortCode, settings.satIsrRate),
-        isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(a.institutionId),
+        isrRate: a.isrRate ?? settings.satIsrRate,
+        isrMode: a.isrMode,
+        isSofipoExempt: settings.applySofipoExemption && a.isrExempt === true,
         sofipoExemptionLimit: settings.umaValueAnnual,
-        roundDailyDown: isDidiInstitution(a.institutionId, a.institutionName, a.shortCode),
-        showISRSeparately: isMifelInstitution(a.institutionId, a.institutionName, a.shortCode),
+        roundingMode: a.roundingMode,
       }),
     };
   });
@@ -48,9 +48,11 @@ export const InicioView: React.FC<InicioViewProps> = ({
 
   // Sofipo exemption calculation
   const sofipoBalance = accounts
-    .filter((a) => ['didi', 'klar', 'plata'].includes(a.institutionId))
+    .filter((a) => a.isrExempt === true)
     .reduce((sum, a) => sum + a.balance, 0);
-  const sofipoPercent = Math.min(100, (sofipoBalance / SOFIPO_EXEMPTION_LIMIT) * 100);
+  const sofipoPercent = settings.umaValueAnnual > 0
+    ? Math.min(100, (sofipoBalance / settings.umaValueAnnual) * 100)
+    : 0;
 
   const currentDisplayYield =
     selectedHorizon === 'dia'
@@ -176,24 +178,25 @@ export const InicioView: React.FC<InicioViewProps> = ({
                 verified
               </span>
               <span className="font-hanken font-semibold text-[14px] sm:text-[15px] text-[#0b1c30] truncate">
-                Escudo Fiscal SOFIPO (5 UMAs)
+                Escudo Fiscal SOFIPO
               </span>
             </div>
             <span className="font-hanken text-[11px] bg-[#6cf8bb]/30 text-[#006c49] font-bold px-2.5 py-0.5 rounded-full shrink-0">
-              100% Exento
+              {settings.applySofipoExemption ? 'Exención activa' : 'Exención desactivada'}
             </span>
           </div>
 
           <p className="font-hanken text-[12px] sm:text-[13px] text-[#45464d] leading-relaxed">
-            Tus ahorros en SOFIPOs autorizadas (Nu, DiDi, Klar, Plata) hasta por{' '}
-            <strong className="text-[#0b1c30]">$206,367 MXN</strong> no pagan la retención de ISR oficial del SAT (0.50% anual).
+            El capital elegible en SOFIPOs está exento hasta el límite anual configurado de{' '}
+            <strong className="text-[#0b1c30]">{formatMXN(settings.umaValueAnnual)} MXN</strong>. La tasa ISR configurada es{' '}
+            <strong className="text-[#0b1c30]">{(settings.satIsrRate * 100).toFixed(2)}% anual</strong>.
           </p>
 
           {/* Progress bar */}
           <div className="flex flex-col gap-1.5 mt-1">
             <div className="flex justify-between items-center font-hanken text-[11px] sm:text-[12px] text-[#45464d]">
               <span className="font-medium text-[#0b1c30]">Ahorro en SOFIPOs: {formatMXN(sofipoBalance)}</span>
-              <span className="text-slate-500">Límite: $206,367 MXN</span>
+              <span className="text-slate-500">Límite: {formatMXN(settings.umaValueAnnual)} MXN</span>
             </div>
             <div className="w-full bg-[#eff4ff] h-2.5 rounded-full overflow-hidden">
               <div
@@ -202,7 +205,9 @@ export const InicioView: React.FC<InicioViewProps> = ({
               ></div>
             </div>
             <span className="font-hanken text-[11px] text-[#006c49] font-semibold self-end">
-              {sofipoPercent.toFixed(1)}% del límite aprovechado
+              {settings.umaValueAnnual > 0
+                ? `${sofipoPercent.toFixed(1)}% del límite utilizado`
+                : 'Exención sin límite disponible'}
             </span>
           </div>
         </div>

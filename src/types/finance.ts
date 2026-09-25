@@ -1,5 +1,7 @@
 export type DivisorBase = 360 | 365;
 export type PaymentFrequency = 'diario' | 'semanal' | 'vencimiento';
+export type IsrMode = 'none' | 'deduct' | 'separate';
+export type RoundingMode = 'normal' | 'truncate-total' | 'truncate-tier';
 
 export interface BankInstitution {
   id: string;
@@ -11,6 +13,10 @@ export interface BankInstitution {
   hasDualTier: boolean;
   dualThreshold?: number; // e.g. 10000
   dualRate2?: number; // e.g. 7.0
+  isrRate?: number;
+  isrMode?: IsrMode;
+  isrExempt?: boolean;
+  roundingMode?: RoundingMode;
   color: string;
   badgeBg: string;
   badgeText: string;
@@ -35,6 +41,10 @@ export interface BankAccount {
   isDualTier: boolean;
   dualThreshold?: number;
   dualRate2?: number;
+  isrRate?: number;
+  isrMode?: IsrMode;
+  isrExempt?: boolean;
+  roundingMode?: RoundingMode;
   color: string;
   badgeBg: string;
   badgeText: string;

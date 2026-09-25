@@ -36,6 +36,10 @@ export async function initDB(): Promise<void> {
       "hasDualTier" INTEGER NOT NULL DEFAULT 0,
       "dualThreshold" REAL,
       "dualRate2" REAL,
+      "isrRate" REAL NOT NULL DEFAULT 0.005,
+      "isrMode" TEXT NOT NULL DEFAULT 'deduct',
+      "isrExempt" INTEGER NOT NULL DEFAULT 0,
+      "roundingMode" TEXT NOT NULL DEFAULT 'normal',
       color TEXT NOT NULL,
       "badgeBg" TEXT NOT NULL,
       "badgeText" TEXT NOT NULL,
@@ -63,6 +67,10 @@ export async function initDB(): Promise<void> {
       "isDualTier" INTEGER NOT NULL DEFAULT 0,
       "dualThreshold" REAL,
       "dualRate2" REAL,
+      "isrRate" REAL NOT NULL DEFAULT 0.005,
+      "isrMode" TEXT NOT NULL DEFAULT 'deduct',
+      "isrExempt" INTEGER NOT NULL DEFAULT 0,
+      "roundingMode" TEXT NOT NULL DEFAULT 'normal',
       color TEXT NOT NULL,
       "badgeBg" TEXT NOT NULL,
       "badgeText" TEXT NOT NULL,
@@ -81,6 +89,30 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "titleCount" INTEGER`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "nominalValue" REAL`;
   await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "ownerId" TEXT`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "isrRate" REAL NOT NULL DEFAULT 0.005`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "isrMode" TEXT NOT NULL DEFAULT 'deduct'`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "isrExempt" INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE institutions ADD COLUMN IF NOT EXISTS "roundingMode" TEXT NOT NULL DEFAULT 'normal'`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrRate" REAL NOT NULL DEFAULT 0.005`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrMode" TEXT NOT NULL DEFAULT 'deduct'`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "isrExempt" INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "roundingMode" TEXT NOT NULL DEFAULT 'normal'`;
+  // One-time compatibility backfill for records created before calculation rules became editable.
+  await sql`UPDATE institutions SET "isrMode" = 'none' WHERE (lower(id) = 'nu' OR lower(name) LIKE '%nu %') AND "isrRate" = 0.005 AND "isrMode" = 'deduct'`;
+  await sql`UPDATE institutions SET "isrRate" = 0.009, "isrMode" = 'separate' WHERE (lower(id) = 'mifel' OR lower(name) LIKE '%mifel%') AND "isrRate" = 0.005 AND "isrMode" = 'deduct'`;
+  await sql`UPDATE institutions SET "roundingMode" = 'truncate-tier' WHERE (lower(id) = 'didi' OR lower(name) LIKE '%didi%') AND "roundingMode" = 'normal'`;
+  await sql`
+    UPDATE accounts AS account
+    SET "isrRate" = institution."isrRate",
+        "isrMode" = institution."isrMode",
+        "isrExempt" = institution."isrExempt",
+        "roundingMode" = institution."roundingMode"
+    FROM institutions AS institution
+    WHERE account."institutionId" = institution.id
+      AND account."isrRate" = 0.005
+      AND account."isrMode" = 'deduct'
+      AND account."roundingMode" = 'normal'
+  `;
   await sql`CREATE INDEX IF NOT EXISTS accounts_owner_id_idx ON accounts ("ownerId")`;
 
   await sql`
@@ -179,6 +211,10 @@ function mapInstitution(r: any): BankInstitution {
     hasDualTier: Boolean(Number(r.hasDualTier)),
     dualThreshold: r.dualThreshold != null ? Number(r.dualThreshold) : undefined,
     dualRate2: r.dualRate2 != null ? Number(r.dualRate2) : undefined,
+    isrRate: r.isrRate != null ? Number(r.isrRate) : SAT_ISR_DEFAULT,
+    isrMode: r.isrMode || 'deduct',
+    isrExempt: Boolean(Number(r.isrExempt)),
+    roundingMode: r.roundingMode || 'normal',
     color: r.color,
     badgeBg: r.badgeBg,
     badgeText: r.badgeText,
@@ -205,6 +241,10 @@ function mapAccount(r: any): BankAccount {
     isDualTier: Boolean(Number(r.isDualTier)),
     dualThreshold: r.dualThreshold != null ? Number(r.dualThreshold) : undefined,
     dualRate2: r.dualRate2 != null ? Number(r.dualRate2) : undefined,
+    isrRate: r.isrRate != null ? Number(r.isrRate) : SAT_ISR_DEFAULT,
+    isrMode: r.isrMode || 'deduct',
+    isrExempt: Boolean(Number(r.isrExempt)),
+    roundingMode: r.roundingMode || 'normal',
     color: r.color,
     badgeBg: r.badgeBg,
     badgeText: r.badgeText,
@@ -251,12 +291,13 @@ export async function createInstitution(inst: BankInstitution): Promise<BankInst
     INSERT INTO institutions (
       id, name, "shortName", rate, "defaultBase", "defaultFreq",
       "hasDualTier", "dualThreshold", "dualRate2", color, "badgeBg", "badgeText",
-      category, "gatNominal", "gatReal"
+      "isrRate", "isrMode", "isrExempt", "roundingMode", category, "gatNominal", "gatReal"
     ) VALUES (
       ${inst.id}, ${inst.name}, ${inst.shortName}, ${inst.rate},
       ${inst.defaultBase}, ${inst.defaultFreq}, ${inst.hasDualTier ? 1 : 0},
       ${inst.dualThreshold ?? null}, ${inst.dualRate2 ?? null}, ${inst.color},
-      ${inst.badgeBg}, ${inst.badgeText}, ${inst.category}, ${inst.gatNominal}, ${inst.gatReal}
+      ${inst.badgeBg}, ${inst.badgeText}, ${inst.isrRate ?? SAT_ISR_DEFAULT}, ${inst.isrMode ?? 'deduct'}, ${inst.isrExempt ? 1 : 0}, ${inst.roundingMode ?? 'normal'},
+      ${inst.category}, ${inst.gatNominal}, ${inst.gatReal}
     )
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
@@ -267,6 +308,10 @@ export async function createInstitution(inst: BankInstitution): Promise<BankInst
       "hasDualTier" = EXCLUDED."hasDualTier",
       "dualThreshold" = EXCLUDED."dualThreshold",
       "dualRate2" = EXCLUDED."dualRate2",
+      "isrRate" = EXCLUDED."isrRate",
+      "isrMode" = EXCLUDED."isrMode",
+      "isrExempt" = EXCLUDED."isrExempt",
+      "roundingMode" = EXCLUDED."roundingMode",
       color = EXCLUDED.color,
       "badgeBg" = EXCLUDED."badgeBg",
       "badgeText" = EXCLUDED."badgeText",
@@ -294,6 +339,10 @@ export async function updateInstitution(id: string, inst: Partial<BankInstitutio
       "hasDualTier" = ${updated.hasDualTier ? 1 : 0},
       "dualThreshold" = ${updated.dualThreshold ?? null},
       "dualRate2" = ${updated.dualRate2 ?? null},
+      "isrRate" = ${updated.isrRate ?? SAT_ISR_DEFAULT},
+      "isrMode" = ${updated.isrMode ?? 'deduct'},
+      "isrExempt" = ${updated.isrExempt ? 1 : 0},
+      "roundingMode" = ${updated.roundingMode ?? 'normal'},
       color = ${updated.color},
       "badgeBg" = ${updated.badgeBg},
       "badgeText" = ${updated.badgeText},
@@ -328,13 +377,14 @@ export async function createAccount(acc: BankAccount, ownerId: string): Promise<
       id, "ownerId", "institutionId", "institutionName", "accountNickname", balance,
       "nominalRate", "rateType", "rateExpiryDate", "baseDivisor", "paymentFrequency",
       "isCompound", "deductISR", "isDualTier", "dualThreshold", "dualRate2",
-      color, "badgeBg", "badgeText", "shortCode", "createdAt", "startDate", "endDate", "titleCount", "nominalValue", "daysRemaining"
+      "isrRate", "isrMode", "isrExempt", "roundingMode", color, "badgeBg", "badgeText", "shortCode", "createdAt", "startDate", "endDate", "titleCount", "nominalValue", "daysRemaining"
     ) VALUES (
       ${acc.id}, ${ownerId}, ${acc.institutionId}, ${acc.institutionName}, ${acc.accountNickname},
       ${acc.balance}, ${acc.nominalRate}, ${acc.rateType}, ${acc.rateExpiryDate ?? null},
       ${acc.baseDivisor}, ${acc.paymentFrequency},
       ${acc.isCompound ? 1 : 0}, ${acc.deductISR ? 1 : 0}, ${acc.isDualTier ? 1 : 0},
       ${acc.dualThreshold ?? null}, ${acc.dualRate2 ?? null},
+      ${acc.isrRate ?? SAT_ISR_DEFAULT}, ${acc.isrMode ?? 'deduct'}, ${acc.isrExempt ? 1 : 0}, ${acc.roundingMode ?? 'normal'},
       ${acc.color}, ${acc.badgeBg}, ${acc.badgeText},
       ${acc.shortCode}, ${acc.createdAt}, ${acc.startDate ?? null}, ${acc.endDate ?? null}, ${acc.titleCount ?? null}, ${acc.nominalValue ?? null}, ${acc.daysRemaining ?? null}
     )
@@ -374,6 +424,10 @@ export async function updateAccount(id: string, acc: Partial<BankAccount>, owner
       "isDualTier" = ${updated.isDualTier ? 1 : 0},
       "dualThreshold" = ${updated.dualThreshold ?? null},
       "dualRate2" = ${updated.dualRate2 ?? null},
+      "isrRate" = ${updated.isrRate ?? SAT_ISR_DEFAULT},
+      "isrMode" = ${updated.isrMode ?? 'deduct'},
+      "isrExempt" = ${updated.isrExempt ? 1 : 0},
+      "roundingMode" = ${updated.roundingMode ?? 'normal'},
       color = ${updated.color},
       "badgeBg" = ${updated.badgeBg},
       "badgeText" = ${updated.badgeText},
