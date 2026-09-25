@@ -108,6 +108,10 @@ export default function App() {
       const activeSettings = dbSettings ?? settings;
       const currentTime = Date.now();
       const dayInMilliseconds = 24 * 60 * 60 * 1000;
+      const getLocalDayNumber = (timestamp: number) => {
+        const date = new Date(timestamp);
+        return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+      };
       const accruedRecords: DailyYieldRecord[] = [];
       const updatedAccounts = [...(dbAccounts || [])];
 
@@ -116,7 +120,9 @@ export default function App() {
           .filter((record) => record.accountId === account.id && record.createdAt)
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const lastTimestamp = accountRecords[0]?.createdAt || new Date(account.createdAt).getTime();
-        const elapsedDays = Math.floor((currentTime - lastTimestamp) / dayInMilliseconds);
+        const elapsedDays = Math.floor(
+          (getLocalDayNumber(currentTime) - getLocalDayNumber(lastTimestamp)) / dayInMilliseconds,
+        );
         const latestRecord = accountRecords[0];
         if (elapsedDays <= 0) {
           const expectedBalance = latestRecord
@@ -137,7 +143,9 @@ export default function App() {
         let runningBalance = account.balance;
         const pendingRecords: DailyYieldRecord[] = [];
         for (let day = 1; day <= elapsedDays; day += 1) {
-          const recordTimestamp = lastTimestamp + day * dayInMilliseconds;
+          const recordDate = new Date(lastTimestamp);
+          recordDate.setDate(recordDate.getDate() + day);
+          const recordTimestamp = recordDate.getTime();
           const yieldCalc = calculateYield({
             monto: runningBalance,
             tasaNominal: account.nominalRate,
@@ -153,7 +161,6 @@ export default function App() {
             roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
           });
           const balanceAfterYield = runningBalance + yieldCalc.netDaily;
-          const recordDate = new Date(recordTimestamp);
           const pendingRecord: DailyYieldRecord = {
             id: `y-${account.id}-${recordTimestamp}`,
             accountId: account.id,
