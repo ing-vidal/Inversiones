@@ -433,28 +433,13 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Columna Izquierda: Configuración de la Cuenta (7 cols en desktop) */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            {/* Header Banner / Context */}
-            <div className="bg-white p-4 rounded-xl shadow-xs border border-[#e2e8f0]/60 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#006c49]/10 flex items-center justify-center text-[#006c49] shrink-0">
-                <span className="material-symbols-outlined text-[26px]">tune</span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <h2 className="font-hanken font-semibold text-[16px] text-[#0b1c30]">
-                  Configurar Fórmula Bancaria
-                </h2>
-                <p className="font-hanken text-[12px] text-[#45464d] truncate">
-                  Rendimiento diario exacto y retención de ISR oficial SAT
-                </p>
-              </div>
-            </div>
-
           {/* 1. Institución o SOFIPO */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="font-hanken text-[11px] font-bold text-[#45464d] uppercase tracking-wider">
-                1. Institución o SOFIPO
+          <div className="bg-white p-4 rounded-xl border border-[#e2e8f0]/60 shadow-sm flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="font-hanken text-[12px] font-bold text-[#bec6e0] uppercase tracking-wider">
+                Institución o SOFIPO
               </span>
-              <span className="font-hanken text-[12px] text-[#006c49] font-semibold">
+              <span className="font-hanken text-[12px] text-[#45d9ff] font-semibold">
                 {selectedInst?.name ?? 'Sin institución'} ({selectedInst?.rate ?? 0}%)
               </span>
             </div>
