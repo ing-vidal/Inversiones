@@ -473,6 +473,7 @@ export default function App() {
             {activeTab === 'cuentas' && (
               <CuentasView
                 accounts={accounts}
+                history={history}
                 settings={settings}
                 institutions={institutions}
                 onSaveAccount={handleSaveAccount}

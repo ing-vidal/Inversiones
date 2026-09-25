@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BankAccount, BankInstitution, DivisorBase, PaymentFrequency } from '../../types/finance';
+import { BankAccount, BankInstitution, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
 import { calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
   accounts: BankAccount[];
+  history: DailyYieldRecord[];
   settings: UserSettings;
   institutions: BankInstitution[];
   onSaveAccount: (newAccount: BankAccount) => void;
@@ -16,6 +17,7 @@ interface CuentasViewProps {
 
 export const CuentasView: React.FC<CuentasViewProps> = ({
   accounts,
+  history,
   settings,
   institutions,
   onSaveAccount,
@@ -821,6 +823,11 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
           {/* List of active accounts */}
             {accounts.map((acc) => {
             const isMifelAccount = acc.institutionName.toLowerCase().includes('mifel');
+              const latestRecord = isMifelAccount
+                ? history
+                  .filter((record) => record.accountId === acc.id)
+                  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]
+                : undefined;
             const res = calculateYield({
               monto: acc.balance,
               tasaNominal: acc.nominalRate,
@@ -890,7 +897,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     <span className="font-space text-[19px] font-bold text-[#006c49]">
                       {formatMXN(
                         isMifelAccount
-                          ? res.grossDaily
+                          ? latestRecord?.grossYield ?? res.grossDaily
                           : acc.paymentFrequency === 'vencimiento'
                           ? res.netDaily * (acc.daysRemaining || 28)
                           : res.netDaily,
@@ -900,7 +907,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     </span>
                     {isMifelAccount && (
                       <span className="font-hanken text-[10px] text-[#b4534b] whitespace-nowrap">
-                        ISR retenido: -${res.isrDaily.toFixed(2)}
+                        ISR retenido: -${(latestRecord?.isrWithheld ?? res.isrDaily).toFixed(2)}
                       </span>
                     )}
                   </div>
