@@ -26,6 +26,7 @@ import {
   apiDeleteAccount,
   fetchYieldHistory,
   apiCreateYieldRecord,
+  apiUpdateYieldRecordBalance,
   fetchSettings,
   apiUpdateSettings,
   apiResetDatabase,
@@ -116,7 +117,22 @@ export default function App() {
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const lastTimestamp = accountRecords[0]?.createdAt || new Date(account.createdAt).getTime();
         const elapsedDays = Math.floor((currentTime - lastTimestamp) / dayInMilliseconds);
-        if (elapsedDays <= 0) continue;
+        const latestRecord = accountRecords[0];
+        if (elapsedDays <= 0) {
+          const expectedBalance = latestRecord
+            ? latestRecord.balanceAtTime + latestRecord.netYield
+            : account.balance;
+          const isStaleBalance = latestRecord
+            && Math.abs(expectedBalance - account.balance) < 0.01
+            && Math.abs(latestRecord.balanceAtTime - account.balance) >= 0.01;
+
+          if (isStaleBalance) {
+            const correctedRecord = await apiUpdateYieldRecordBalance(latestRecord.id, account.balance);
+            const historyIndex = dbHistory.findIndex((record) => record.id === correctedRecord.id);
+            if (historyIndex >= 0) dbHistory[historyIndex] = correctedRecord;
+          }
+          continue;
+        }
 
         let runningBalance = account.balance;
         const pendingRecords: DailyYieldRecord[] = [];

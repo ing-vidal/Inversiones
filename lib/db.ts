@@ -416,6 +416,20 @@ export async function createYieldRecord(record: DailyYieldRecord): Promise<Daily
   }
 }
 
+export async function updateYieldRecordBalance(
+  id: string,
+  balanceAtTime: number,
+): Promise<DailyYieldRecord | null> {
+  const sql = getSQL();
+  const rows = await sql`
+    UPDATE yield_history
+    SET "balanceAtTime" = ${balanceAtTime}
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  return rows.length > 0 ? mapHistory(rows[0]) : null;
+}
+
 export async function accrueAccount(
   id: string,
   records: DailyYieldRecord[],

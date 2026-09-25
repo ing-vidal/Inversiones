@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDB, getYieldHistory, createYieldRecord } from '../../lib/db.js';
+import { initDB, getYieldHistory, createYieldRecord, updateYieldRecordBalance } from '../../lib/db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
@@ -21,6 +21,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const created = await createYieldRecord(record);
       return res.status(201).json(created);
+    }
+
+    if (req.method === 'PUT') {
+      const id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
+      const balanceAtTime = Number(req.body?.balanceAtTime);
+      if (!id || !Number.isFinite(balanceAtTime)) {
+        return res.status(400).json({ error: 'Invalid record update data' });
+      }
+      const updated = await updateYieldRecordBalance(id, balanceAtTime);
+      if (!updated) return res.status(404).json({ error: 'Record not found' });
+      return res.status(200).json(updated);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

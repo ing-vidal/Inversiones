@@ -125,6 +125,19 @@ export async function apiCreateYieldRecord(record: DailyYieldRecord): Promise<Da
   return await res.json();
 }
 
+export async function apiUpdateYieldRecordBalance(
+  id: string,
+  balanceAtTime: number,
+): Promise<DailyYieldRecord> {
+  const res = await fetch(`${BASE_URL}/history?id=${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ balanceAtTime }),
+  });
+  if (!res.ok) throw new Error('Error al actualizar saldo del historial');
+  return await res.json();
+}
+
 export async function fetchSettings(): Promise<UserSettings> {
   const res = await fetch(`${BASE_URL}/settings`);
   if (!res.ok) throw new Error('Error al cargar configuración desde la base de datos');
