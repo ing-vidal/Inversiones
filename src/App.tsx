@@ -13,7 +13,7 @@ import { HistorialView } from './components/views/HistorialView';
 import { PerfilView } from './components/views/PerfilView';
 import { AuthView } from './components/views/AuthView';
 import { AdminView } from './components/views/AdminView';
-import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, getInstitutionSatRate, isDidiInstitution, isMifelInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution } from './utils/calculator';
+import { SAT_ISR_DEFAULT, SOFIPO_EXEMPTION_LIMIT, INFLATION_ESTIMATE, calculateYield, getInstitutionSatRate, isDidiInstitution, isMifelInstitution, isNuInstitution, isSofipoInstitution } from './utils/calculator';
 import {
   fetchHealth,
   fetchInstitutions,
@@ -85,7 +85,7 @@ const calculateAccountYield = (account: BankAccount, balance: number, settings: 
   satRate: getInstitutionSatRate(account.institutionId, account.institutionName, account.shortCode, settings.satIsrRate),
   isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(account.institutionId),
   sofipoExemptionLimit: settings.umaValueAnnual,
-  roundDailyDown: isOpenBankInstitution(account.institutionId, account.institutionName, account.shortCode) || isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
+  roundDailyDown: isDidiInstitution(account.institutionId, account.institutionName, account.shortCode),
 });
 
 function MainApp() {
@@ -283,7 +283,7 @@ function MainApp() {
       satRate: getInstitutionSatRate(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode, settings.satIsrRate),
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(newAcc.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
-      roundDailyDown: isOpenBankInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode) || isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
+      roundDailyDown: isDidiInstitution(newAcc.institutionId, newAcc.institutionName, newAcc.shortCode),
     });
 
     const newRecord: DailyYieldRecord = {

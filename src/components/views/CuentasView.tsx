@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BankAccount, BankInstitution, DailyYieldRecord, DivisorBase, PaymentFrequency } from '../../types/finance';
-import { calculateTermProgress, calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isOpenBankInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
+import { calculateTermProgress, calculateYield, formatMXN, getInstitutionSatRate, isCetesInstitution, isDidiInstitution, isNuInstitution, isSofipoInstitution, SAT_ISR_DEFAULT } from '../../utils/calculator';
 import { UserSettings } from '../../types/finance';
 
 interface CuentasViewProps {
@@ -109,7 +109,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       : settings.satIsrRate || SAT_ISR_DEFAULT,
     isSofipoExempt: settings.applySofipoExemption && selectedInst !== null && isSofipoInstitution(selectedInst.id),
     sofipoExemptionLimit: settings.umaValueAnnual,
-    roundDailyDown: selectedInst !== null && (isOpenBankInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName) || isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName)),
+    roundDailyDown: selectedInst !== null && isDidiInstitution(selectedInst.id, selectedInst.name, selectedInst.shortName),
   });
   const hasValidTermDates = /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate)
     && Number(startDate.slice(0, 4)) >= 2000 && Number(endDate.slice(0, 4)) >= 2000;
@@ -189,7 +189,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
       satRate: getInstitutionSatRate(curr.institutionId, curr.institutionName, curr.shortCode, settings.satIsrRate || SAT_ISR_DEFAULT),
       isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(curr.institutionId),
       sofipoExemptionLimit: settings.umaValueAnnual,
-      roundDailyDown: isOpenBankInstitution(curr.institutionId, curr.institutionName, curr.shortCode) || isDidiInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
+      roundDailyDown: isDidiInstitution(curr.institutionId, curr.institutionName, curr.shortCode),
     });
     return acc + res.netDaily;
   }, 0);
@@ -856,7 +856,7 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
               satRate: getInstitutionSatRate(acc.institutionId, acc.institutionName, acc.shortCode, settings.satIsrRate || SAT_ISR_DEFAULT),
               isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(acc.institutionId),
               sofipoExemptionLimit: settings.umaValueAnnual,
-              roundDailyDown: isOpenBankInstitution(acc.institutionId, acc.institutionName, acc.shortCode) || isDidiInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
+              roundDailyDown: isDidiInstitution(acc.institutionId, acc.institutionName, acc.shortCode),
             });
 
             return (
@@ -1048,7 +1048,6 @@ export const CuentasView: React.FC<CuentasViewProps> = ({
                     isSofipoExempt: settings.applySofipoExemption && isSofipoInstitution(institution.id),
                     sofipoExemptionLimit: settings.umaValueAnnual,
                     roundDailyDown:
-                      isOpenBankInstitution(institution.id, institution.name, institution.shortName) ||
                       isDidiInstitution(institution.id, institution.name, institution.shortName),
                   });
 
