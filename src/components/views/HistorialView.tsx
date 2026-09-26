@@ -47,7 +47,16 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts,
     return recordDate.getFullYear() === now.getFullYear();
   };
 
+  const termAccounts = accounts.filter((account) =>
+    account.paymentFrequency === 'vencimiento'
+    && (selectedFilter === 'all' || selectedFilterOption?.accountId === account.id)
+  );
+  const termAccountIds = new Set(accounts
+    .filter((account) => account.paymentFrequency === 'vencimiento')
+    .map((account) => account.id));
+
   const filteredRecords = records.filter((record) => {
+    if (termAccountIds.has(record.accountId)) return false;
     const matchesInstitution = (() => {
       if (selectedFilter === 'all') return true;
       return selectedFilterOption?.accountId === record.accountId;
@@ -56,10 +65,59 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts,
     return matchesInstitution && isInSelectedPeriod(record);
   });
 
-  const termAccounts = accounts.filter((account) =>
-    account.paymentFrequency === 'vencimiento'
-    && (selectedFilter === 'all' || selectedFilterOption?.accountId === account.id)
-  );
+  const isDateInSelectedPeriod = (date: Date) => {
+    if (selectedPeriod === 'all') return true;
+    const now = new Date();
+    if (selectedPeriod === 'day') return date.toDateString() === now.toDateString();
+    if (selectedPeriod === 'month') {
+      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    }
+    return date.getFullYear() === now.getFullYear();
+  };
+
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  const termSnapshots = termAccounts.flatMap((account) => {
+    if (!account.startDate || !account.endDate) return [];
+
+    const startDate = new Date(`${account.startDate}T00:00:00`);
+    const endDate = new Date(`${account.endDate}T00:00:00`);
+    if (!Number.isFinite(startDate.getTime()) || !Number.isFinite(endDate.getTime())) return [];
+
+    const lastSnapshotDate = currentDate < endDate ? currentDate : endDate;
+    if (startDate > lastSnapshotDate) return [];
+
+    const snapshots = [];
+    for (let date = new Date(startDate); date <= lastSnapshotDate; date.setDate(date.getDate() + 1)) {
+      const asOfDate = new Date(date);
+      asOfDate.setHours(23, 59, 59, 999);
+      const progress = calculateTermProgress({
+        balance: account.balance,
+        nominalRate: account.nominalRate,
+        base: account.baseDivisor,
+        startDate: account.startDate,
+        endDate: account.endDate,
+        calculationMethod: account.calculationMethod,
+        titleCount: account.titleCount,
+        nominalValue: account.nominalValue,
+        isCompound: account.isCompound,
+        deductISR: account.isrMode ? account.isrMode === 'deduct' : account.deductISR,
+        isDualTier: account.isDualTier,
+        dualThreshold: account.dualThreshold,
+        dualRate2: account.dualRate2,
+        isrRate: account.isrRate ?? settings.satIsrRate,
+        isrMode: account.isrMode,
+        isSofipoExempt: settings.applySofipoExemption && account.isrExempt === true,
+        sofipoExemptionLimit: settings.umaValueAnnual,
+        roundingMode: account.roundingMode,
+        now: asOfDate.getTime(),
+      });
+      if (isDateInSelectedPeriod(date)) {
+        snapshots.push({ account, date: new Date(date), progress });
+      }
+    }
+    return snapshots;
+  }).sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const totalAccumulated = filteredRecords.reduce((sum, r) => sum + r.netYield, 0);
   const totalTaxWithheld = filteredRecords.reduce((sum, r) => sum + r.isrWithheld, 0);
@@ -237,51 +295,30 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts,
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="font-hanken text-[12px] font-bold text-[#45464d] uppercase tracking-wider">
-            Abonos Registrados ({filteredRecords.length + termAccounts.length})
+            Abonos Registrados ({filteredRecords.length + termSnapshots.length})
           </span>
           <span className="font-hanken text-[11px] text-[#76777d]">
             Orden cronológico más reciente
           </span>
         </div>
 
-        {filteredRecords.length === 0 && termAccounts.length === 0 ? (
+        {filteredRecords.length === 0 && termSnapshots.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl border border-dashed border-[#cbd5e1] text-center text-[#76777d] font-hanken text-[14px]">
             No hay registros para este filtro seleccionado.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {termAccounts.map((account) => {
-              const termProgress = calculateTermProgress({
-                balance: account.balance,
-                nominalRate: account.nominalRate,
-                base: account.baseDivisor,
-                startDate: account.startDate,
-                endDate: account.endDate,
-                calculationMethod: account.calculationMethod,
-                titleCount: account.titleCount,
-                nominalValue: account.nominalValue,
-                isCompound: account.isCompound,
-                deductISR: account.isrMode ? account.isrMode === 'deduct' : account.deductISR,
-                isDualTier: account.isDualTier,
-                dualThreshold: account.dualThreshold,
-                dualRate2: account.dualRate2,
-                isrRate: account.isrRate ?? settings.satIsrRate,
-                isrMode: account.isrMode,
-                isSofipoExempt: settings.applySofipoExemption && account.isrExempt === true,
-                sofipoExemptionLimit: settings.umaValueAnnual,
-                roundingMode: account.roundingMode,
+            {termSnapshots.map(({ account, date, progress }) => {
+              const dateLabel = `${date.getDate()} de ${date.toLocaleDateString('es-MX', { month: 'short' }).replace(/\./g, '')}`;
+              const maturityDate = new Date(`${account.endDate}T00:00:00`).toLocaleDateString('es-MX', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
               });
-              const maturityDate = account.endDate
-                ? new Date(`${account.endDate}T00:00:00`).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })
-                : 'Fecha de vencimiento pendiente';
 
               return (
                 <div
-                  key={`term-${account.id}`}
+                  key={`term-${account.id}-${date.toISOString().slice(0, 10)}`}
                   className="bg-white p-4 rounded-xl border border-[#e2e8f0]/80 shadow-xs flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -293,19 +330,19 @@ export const HistorialView: React.FC<HistorialViewProps> = ({ records, accounts,
                         {account.institutionName}
                       </span>
                       <span className="font-hanken text-[11px] text-[#76777d] truncate">
-                        Plazo fijo • Vence: {maturityDate}
+                        {dateLabel} • Plazo fijo • Vence: {maturityDate}
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end shrink-0 pl-2">
                     <span className="font-space text-[15px] sm:text-[16px] font-bold text-[#006c49] whitespace-nowrap">
-                      {formatMXN(termProgress.maturityAmount)}
+                      {formatMXN(progress.maturityAmount)}
                     </span>
                     <span className="font-hanken text-[10px] text-[#76777d] whitespace-nowrap">
                       Monto al vencimiento
                     </span>
                     <span className="font-hanken text-[10px] text-[#006c49] whitespace-nowrap">
-                      Ganado a la fecha: {formatMXN(termProgress.accruedInterest)}
+                      Ganado a la fecha: {formatMXN(progress.accruedInterest)}
                     </span>
                     <span className="font-hanken text-[10px] text-[#45464d] whitespace-nowrap">
                       Saldo invertido: {formatMXN(account.balance)}

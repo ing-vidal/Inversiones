@@ -32,7 +32,6 @@ import {
   apiUpdateAccount,
   apiUpdateBalance,
   apiAccrueAccount,
-  apiFreezeTermAccount,
   apiDeleteAccount,
   fetchYieldHistory,
   apiCreateYieldRecord,
@@ -122,12 +121,6 @@ function MainApp() {
 
       for (const account of updatedAccounts) {
         if (account.paymentFrequency === 'vencimiento') {
-          const updated = await apiFreezeTermAccount(account.id);
-          const accountIndex = updatedAccounts.findIndex((item) => item.id === account.id);
-          if (accountIndex >= 0) updatedAccounts[accountIndex] = updated;
-          for (let index = dbHistory.length - 1; index >= 0; index -= 1) {
-            if (dbHistory[index].accountId === account.id) dbHistory.splice(index, 1);
-          }
           continue;
         }
 
